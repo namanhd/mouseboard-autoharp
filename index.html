@@ -1,0 +1,195 @@
+<html>
+    <meta charset="UTF-8">
+<head>
+    <title>mouseboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family:'Source Sans Pro', sans-serif;
+        }
+
+        #start-prompt-screen {
+            display:flex;
+            align-items: center;
+            justify-content: center;
+
+            background-color: gray;
+            color: white;
+            text-align: center;
+            vertical-align: middle;
+            position:absolute;
+            top:0;
+            left:0;
+            height: 100vh;
+            width: 100vw;
+            margin: auto;
+        }
+        
+        #circle-of-fifths {
+            background-color: lightgoldenrodyellow;
+            position:relative;
+            display:flex;
+            border-radius: 50%;
+            height: 800px;
+            aspect-ratio: 1/1;
+            margin-left:10vw;
+            /* margin-right: 80%; */
+            /* margin-top: 80px;    */
+        }
+        
+        .basspad-circle {
+            background-color:rgb(222, 237, 255);
+            border-radius: 50%;
+        }
+        .basspad-circle:hover {
+            background-color: rgb(244, 255, 253);
+        }
+        .basspad-tonnetz {
+            background-color:#ffebb0;
+            border-radius: 10%;
+        }
+        .basspad-tonnetz:hover {
+            background-color: #fffada;
+        }
+        .basspad {
+            font-size: 20pt;
+            float:left;
+            position:absolute;
+            user-select: none;
+            
+            width:160px;
+            height:160px;
+            text-align: center;
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%, 0);
+            box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
+            transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.3s, box-shadow 0.2s, -webkit-box-shadow 0.2s, -moz-box-shadow 0.2s, width 0.2s, height 0.2s;
+        }
+        .basspad:hover {
+            width: 170px;
+            height: 170px;
+            box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
+        }
+
+        .button-toggle {
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 12pt;
+            display:inline-block;
+            border-radius: 10px;
+            padding-left: 16px;
+            padding-right: 8px;
+            height:32px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            text-align:center;
+            background-color: rgb(245, 245, 255);
+            box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
+            border: 0px solid black;
+            transition: background-color 0.1s, box-shadow 0.1s
+        }
+        .button-toggle:hover {
+            background-color:rgb(190, 242, 255);
+            box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+        }
+        .container {
+            display:flex;
+        }
+
+        #chord-symbol-display {
+            color:lightgray;
+            font-size:100pt;
+            height: 120pt;
+            vertical-align: middle;
+            text-align: center;
+            margin: auto;
+            /* padding-bottom: 20pt; */
+            border-radius: 10px;
+            border: 2px dashed cornflowerblue;
+            line-height:1.1em;
+        }
+
+        #info-panel {
+            width: 33%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        ul#list-chord-keyboard-mapping {
+            columns: 3;
+            -moz-columns: 3;
+            -webkit-columns: 3;
+        }
+
+        #debugbox {
+            font-family:'Courier New', Courier, monospace;
+        }
+    </style>
+    <!-- tone.js import -->
+    <script src="http://tonejs.github.io/build/Tone.js"></script>
+    <script src="mouseboard.js"></script>
+</head>
+
+<body>
+
+<h2 style="display:inline">mouseboard</h2>, a mouse-and-keyboard autoharp <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a>
+
+
+<div class="container">
+    <div id="circle-of-fifths"></div>
+
+    <div id="info-panel">
+        <div id="chord-symbol-display"></div>
+        <p>
+        Hover over the pads to select a bass note. Use the keyboard to play chord voicings on the current bass note.
+        Press <b>z</b> to play just the current bass note; you can hold/release it independently of the voicing buttons. 
+        The chord name will appear in the box above.
+        </p>
+        
+        <p>
+            Here is a list of the available voicings.
+            <ul id="list-chord-keyboard-mapping"></ul>
+            There is automatic voice leading (i.e. the voices will adjust their octave
+            to be closest to their last played note). This can sometimes go wrong, though. Press the backtick
+            key (`) to reset the voice leading memory. 
+        </p>
+        <p>
+            There are two circle-of-fifths-based layouts available for the bass note pads. <br>
+
+            <button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle layout and Tonnetz layout</button>
+        </p>
+
+        
+        <details style="background-color:aliceblue; width: 100%">
+            <summary class="button-toggle" style="width: 96%">Show some quick playing tips...</summary>
+            <ul>
+                <li><b>Two-five-one: </b>  Hover over three consecutive pads (in counterclockwise order) and press <b>z+s, z+d, z+f</b> respectively.
+                You get a nice ii-V-I progression using the minor 9th, dominant 9th, and major 9th voicings.</li>
+                <li><b>Slash chords: </b> play a voicing, and while holding down the voicing button, move your mouse to a different pad and press <b>z</b> to play the new bass note.
+                You have (most likely) played a <i>slash chord</i>, where the bass note is different from the bass note implied by the upper notes!</li>
+            </ul>
+        </details>
+    
+        
+    </div>
+</div>
+<div id="start-prompt-screen"><h2>click to start</h2></div>
+
+<script>
+    setup();
+</script>
+</body>
+</html>
