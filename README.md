@@ -12,7 +12,7 @@ keyboard, inspired by the touchscreen autokalimba https://foldr.moe/harp. Featur
 - Select a bass note by hovering your mouse over the note pads. Play that bass and premade chords built on it using the computer keyboard.
 
 - Press **z** to play the selected bass note; press one of the voicing buttons (currently available: **x, c, v, s, d, f, g, w, e, r, t**) to play a chord voicing (a set of intervals) on top of that bass note. The **z** bass button can be held or released independently from the voicing buttons.
-    - For instance, **s** alone plays the minor 9th chord voicing of the current bass (which plays four tones: a minor 3rd, perfect 5th, minor 7th, minor 9th above the root). Pressing **z+s** plays the minor 9th with the bass note (an octave below) included too. 
+    - For instance, **s** alone plays the minor 9th chord voicing of the current bass (which plays four tones: a minor 3rd, perfect 5th, minor 7th, major 9th above the root). Pressing **z+s** plays the minor 9th with the bass note (an octave below) included too. 
     - A full list of voicings is available in the instrument's interface.
     - *Recommended finger position*: ring or pinky on the **z**, and the rest of the fingers pivot around it to reach the voicing buttons, which are nearby.
 
