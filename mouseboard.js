@@ -123,6 +123,7 @@ class Voice {
     }
     resetVoiceLeadingMemory() {
         this.lastPlayedCents = undefined;
+        this.timesOctaveShifted = 0;
     }
 }
 
