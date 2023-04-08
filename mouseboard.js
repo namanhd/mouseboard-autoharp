@@ -1,6 +1,6 @@
 
-/* like autokalimba () but compatible with mouse, and has more affordances
- * based on the mouse and keyboard interface. */
+/* like autokalimba but specifically for mouse and keyboard
+  rather than touch, and has automatic voice leading */
 
 const BASE_FREQ = 261.625/2;
 const N_VOICES_PER_INSTRUMENT = 4;
@@ -25,17 +25,18 @@ function updateChordDisplay() {
     const chordSymbolDisplay = document.getElementById("chord-symbol-display");
     chordSymbolDisplay.textContent = "";
     
-    const selectedBassElem = document.createElement("strong"); /* hovered upon; updated via bass pads */
     const playingBassElem = document.createElement("strong"); /* clicked via the bass-only key */
     const impliedBassElem = document.createElement("strong"); /* activated whenever a voicing plays (the bass note implied by that voicing) */
     const voicingElem = document.createElement("span");
     
-    /* the selected bass is the most recently hovered-on bass note. It also is the bass note of the
-    currently playing voicing/last selected voicing. It may be different from the bass note that is
-    actually playing (which may have been held from earlier), stored in STATE.info_bassNotePlaying.
-    STATE.info_voicing is empty is no voicing is currently played.
+    /* the selected bass is the most recently hovered-on bass note. 
+    It may be different from the bass note that is actually playing (which may 
+    have been held from earlier), stored in STATE.info_bassNotePlaying, and
+    different from the bass note implied by the voicing that is playing (which
+    is the selected bass note from when the voicing was triggered, stored in 
+    STATE.info_bassNoteImpliedByVoicing.)
+    STATE.info_voicing is empty when no voicing is currently played.
     */
-    // selectedBassElem.append(STATE.info_bassNoteSelected);
     impliedBassElem.append(STATE.info_bassNoteImpliedByVoicing);
     playingBassElem.append(STATE.info_bassNotePlaying);
     voicingElem.append(STATE.info_voicing);
@@ -50,8 +51,6 @@ function updateChordDisplay() {
     playingBassElem.style.color = STATE.info_bassNotePlaying === "" ? "lightgray" : "mediumslateblue";
     voicingElem.style.color = STATE.info_voicing === "" ? "lightgray" : "mediumslateblue";
     impliedBassElem.style.color = STATE.info_bassNoteImpliedByVoicing === "" ? "lightgray": "lightblue";
-    // selectedBassElem.style.color = STATE.info_voicing === "" ? "lightgray" : "lightblue";
-
 }
 
 
@@ -61,12 +60,11 @@ function updateChordDisplay() {
   https://tonejs.github.io/docs/14.7.77/AmplitudeEnvelope 
 */
 
-/* */
 class Voice {
     constructor(autoVoiceLeadingMode="updown") {
         /* ddd more nodes to change the sound */
         this.volumeNode = new Tone.Volume(-12).toDestination();
-        this.filterNode = new Tone.Filter(1400, "lowpass").connect(this.volumeNode);
+        this.filterNode = new Tone.Filter(1100, "lowpass").connect(this.volumeNode);
         this.synth = new Tone.Synth().connect(this.filterNode); 
         this.synth.oscillator.type = "sawtooth";
 
