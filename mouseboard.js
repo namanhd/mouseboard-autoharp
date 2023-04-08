@@ -4,8 +4,9 @@
 
 const BASE_FREQ = 261.625/2;
 const N_VOICES_PER_INSTRUMENT = 4;
+const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 4;
 
-/* "application state" */
+/* "application state", things that can change over the course of execution */
 const STATE = {
     "basspads":  undefined,
     "chordplayers": undefined,
@@ -13,7 +14,6 @@ const STATE = {
     "info_bassNotePlaying": "",
     "info_bassNoteImpliedByVoicing": "",
     "info_voicing": "",
-    /* config stuff */
     "basspadLayout": "circle",
 };
 
@@ -65,7 +65,7 @@ function updateChordDisplay() {
 class Voice {
     constructor(autoVoiceLeadingMode="updown") {
         /* ddd more nodes to change the sound */
-        this.volumeNode = new Tone.Volume(-11).toDestination();
+        this.volumeNode = new Tone.Volume(-12).toDestination();
         this.filterNode = new Tone.Filter(1400, "lowpass").connect(this.volumeNode);
         this.synth = new Tone.Synth().connect(this.filterNode); 
         this.synth.oscillator.type = "sawtooth";
@@ -77,6 +77,8 @@ class Voice {
 
         this.lastPlayedCents = undefined;
         this.autoVoiceLeadingMode = autoVoiceLeadingMode;
+        this.timesOctaveShifted = 0; 
+        /* if we octave shifted in the same direction for too long we'll reset voiceleading */
         /* can change envelope settings here maybe */
     }
     autoVoiceLeading(cents) {
@@ -100,8 +102,19 @@ class Voice {
         
         const distancesToLastPlayedCents = tries.map(c => Math.abs(c - this.lastPlayedCents));
         const result = tries[distancesToLastPlayedCents.indexOf(Math.min(...distancesToLastPlayedCents))];
+        if (result < cents) {
+            this.timesOctaveShifted--;
+        }
+        else if (result > cents) {
+            this.timesOctaveShifted++;
+        }
+        if (Math.abs(this.timesOctaveShifted) > VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES) {
+            this.resetVoiceLeadingMemory()
+            return cents;
+        }
         return Math.min(Math.max(result, cents - 2400), cents + 2400);
     }
+
     on(cents, velocity=1, doAutoVoiceLeading=true) {
         cents = doAutoVoiceLeading ? this.autoVoiceLeading(cents) : cents;
         this.lastPlayedCents = cents;
@@ -193,10 +206,10 @@ const KEYBOARD_TO_VOICING_MAP =
   , "d": {"name": "9", "bass": [], "chord": [0, 400, 1000, 1400-1200], "voicelead": true} /* 9 */
   , "f": {"name": "M9", "bass": [], "chord": [1100, 1400, 1600, 1900-1200], "voicelead": true} /*  M9 */
   , "g": {"name": "sus7", "bass": [], "chord": [0, 1000, 1400, 1700], "voicelead": true}
-  , "w": {"name": "aug", "bass": [], "chord": [undefined, 400, 800, 1200], "voicelead": false}
-  , "e": {"name": "dim", "bass": [], "chord": [undefined, 300, 600, 900], "voicelead": false}
+  , "w": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false}
+  , "e": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true}
   , "r": {"name": "alt", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false}
-  , "t": {"name": "7♯5", "bass": [], "chord": [0, 1000, 1200+400, 1200+800], "voicelead": true}
+  , "t": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true}
   }
 
 class ChordTriggers {
