@@ -59,19 +59,104 @@ function updateChordDisplay() {
   changing envelope of Synth(): https://tonejs.github.io/docs/14.7.77/Synth#envelope
   https://tonejs.github.io/docs/14.7.77/AmplitudeEnvelope 
 */
+const BASE_MEOW_FILTER = 400;
+const MEOW_FILTER_MAX_INCREASE = 600;
 
-class Voice {
-    constructor(autoVoiceLeadingMode="updown") {
-        /* ddd more nodes to change the sound */
+class Meowsynth {
+    constructor() {
         this.volumeNode = new Tone.Volume(-12).toDestination();
-        this.filterNode = new Tone.Filter(1100, "lowpass").connect(this.volumeNode);
+        this.filterNode = new Tone.Filter(BASE_MEOW_FILTER, "lowpass").connect(this.volumeNode);
+        this.synth = new Tone.Synth().connect(this.filterNode); 
+        this.synth.oscillator.type = "sawtooth";
+        
+        const mult = new Tone.Multiply();
+        const add = new Tone.Add();
+        this.filterFreqBase = new Tone.Signal(BASE_MEOW_FILTER, "frequency");
+        this.filterFreqIncrease = new Tone.Signal(MEOW_FILTER_MAX_INCREASE, "frequency"); /* updated by tilt */
+        this.meowEnvelopeNode = new Tone.Envelope(0.001, 0, 1, 0.08); /* triggered by touch/click */
+
+        this.filterFreqIncrease.connect(mult);
+        this.meowEnvelopeNode.connect(mult.factor);
+
+        mult.connect(add);
+        this.filterFreqBase.connect(add.addend);
+        
+        add.connect(this.filterNode.frequency);
+
+        this.synth.envelope.attack = 0.001;
+        this.synth.envelope.decay = 0;
+        this.synth.envelope.sustain = 1.0;
+        this.synth.envelope.release = 0.08; /* long release */
+
+        // this.synth.oscillator.frequency.value = BASE_FREQ;
+        // this.synth.oscillator.start();
+    }
+    on(f, velocity) {
+        this.synth.triggerAttack(f, "0", velocity);
+        this.meowEnvelopeNode.triggerAttack("0");
+    }
+    off() {
+        this.synth.triggerRelease();
+        this.meowEnvelopeNode.triggerRelease("0");
+    }
+}
+
+class ToneSynth {
+    on(f, velocity) {
+        this.synth.triggerAttack(f, "+0", velocity);
+    }
+    off() {
+        this.synth.triggerRelease("+0");
+    }
+}
+
+class ElecPiano extends ToneSynth {
+    constructor() {
+        super();
+        this.volumeNode = new Tone.Volume(-4).toDestination();
+        this.synth = new Tone.FMSynth({
+            "harmonicity":3,
+            "modulationIndex": 14,
+            "oscillator" : {
+                "type": "sine"
+            },
+            "envelope": {
+                "attack": 0.001,
+                "decay": 1.6,
+                "sustain": 0.2,
+                "release": 2
+            },
+            "modulation" : {
+                "type" : "sine"
+            },
+            "modulationEnvelope" : {
+                "attack": 0.002,
+                "decay": 0.2,
+                "sustain": 0,
+                "release": 0.2
+            }
+        }).toDestination(this.volumeNode);
+        
+    }
+} 
+class BassSynth extends ToneSynth {
+    constructor() {
+        super();
+        this.volumeNode = new Tone.Volume(-11).toDestination();
+        this.filterNode = new Tone.Filter(500, "lowpass").connect(this.volumeNode);
         this.synth = new Tone.Synth().connect(this.filterNode); 
         this.synth.oscillator.type = "sawtooth";
 
         this.synth.envelope.attack = 0.02;
         this.synth.envelope.decay = 0;
-        this.synth.envelope.sustain = 0.1;
+        this.synth.envelope.sustain = 0.2;
         this.synth.envelope.release = 0.08;
+    }
+}
+
+class Voice {
+    constructor(synth, autoVoiceLeadingMode="updown") {
+        this.synth = synth;
 
         this.lastPlayedCents = undefined;
         this.autoVoiceLeadingMode = autoVoiceLeadingMode;
@@ -82,6 +167,10 @@ class Voice {
     autoVoiceLeading(cents) {
         if (this.lastPlayedCents === undefined) {
             this.lastPlayedCents = cents;
+            return cents;
+        }
+        if (cents === 0) {
+            /* don't voicelead whenever the root note is requested */
             return cents;
         }
         /* allow +-1200 range in the given cents, whichever one is closest
@@ -110,16 +199,17 @@ class Voice {
             this.resetVoiceLeadingMemory()
             return cents;
         }
-        return Math.min(Math.max(result, cents - 2400), cents + 2400);
+        return Math.min(Math.max(result, cents - 1200), cents + 2400);
     }
 
     on(cents, velocity=1, doAutoVoiceLeading=true) {
         cents = doAutoVoiceLeading ? this.autoVoiceLeading(cents) : cents;
         this.lastPlayedCents = cents;
-        this.synth.triggerAttack(BASE_FREQ * centsToRatio(cents), "0", velocity);
+        // this.synth.triggerAttack(BASE_FREQ * centsToRatio(cents), "0", velocity);
+        this.synth.on(BASE_FREQ * centsToRatio(cents), velocity);
     }
     off() {
-        this.synth.triggerRelease();
+        this.synth.off();
     }
     resetVoiceLeadingMemory() {
         this.lastPlayedCents = undefined;
@@ -129,15 +219,26 @@ class Voice {
 
 /* a Chordplayer is a set of voices that are triggered at the same time  */
 class Chordplayer {
-    constructor(nVoices=N_VOICES_PER_INSTRUMENT, autoVoiceLeadingMode) {
+    constructor(synthName, nVoices=N_VOICES_PER_INSTRUMENT, autoVoiceLeadingMode) {
         /* voice leading modes include "updown" and "down". "updown" mode 
          * can pick a voice either an octave above or below the requested frequency;
          * "down" mode can only pick the frequency below. Good for bass voices. */
+        
         this.nVoices = nVoices;
         this.voices = new Array(nVoices);
         this.bassCents = 0;
         for (let i = 0; i < nVoices; i++) {
-            this.voices[i] = new Voice(autoVoiceLeadingMode);
+            let synth;
+            if (synthName === "meowsynth") {
+                synth = new Meowsynth();
+            }
+            else if (synthName === "elecpiano") {
+                synth = new ElecPiano();
+            }
+            else if (synthName === "basssynth") {
+                synth = new BassSynth();
+            }
+            this.voices[i] = new Voice(synth, autoVoiceLeadingMode);
         }
         this.currentlyPlayingDueToTrigger = undefined; 
         /* can be a keyboard key name or maybe touch button ID if present. 
@@ -201,14 +302,15 @@ const KEYBOARD_TO_VOICING_MAP =
   , "x": {"name": "m7", "bass": [], "chord": [0, 300, 700, 1000], "voicelead":true} /* m7 */
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true} /* dom7 */
   , "v": {"name": "M7", "bass": [], "chord": [0, 400, 700, 1100], "voicelead": true} /* M7 */
-  , "s": {"name": "m9", "bass": [], "chord": [1000, 1400, 1500, 1900-1200], "voicelead": true} /* m9 */
-  , "d": {"name": "9", "bass": [], "chord": [0, 400, 1000, 1400-1200], "voicelead": true} /* 9 */
-  , "f": {"name": "M9", "bass": [], "chord": [1100, 1400, 1600, 1900-1200], "voicelead": true} /*  M9 */
+  , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true} /* m9 */
+  , "d": {"name": "9", "bass": [], "chord": [0, 400, 1000, 1400], "voicelead": true} /* 9 */
+  , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true} /*  M9 */
   , "g": {"name": "sus7", "bass": [], "chord": [0, 1000, 1400, 1700], "voicelead": true}
   , "w": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false}
   , "e": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true}
   , "r": {"name": "alt", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false}
   , "t": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true}
+  , "y": {"name": "7♭9", "bass": [], "chord": [0, 1000, 1300, 1900], "voicelead": true}
   }
 
 class ChordTriggers {
@@ -367,8 +469,8 @@ function setup() {
         await Tone.start()
         console.log("tonejs ready");
         STATE.chordplayers = {
-            "chord": new Chordplayer(N_VOICES_PER_INSTRUMENT, "updown"),
-            "bass": new Chordplayer(1, "down") /* this is just a bass note, played an octave below the 'chord' chordplayer */
+            "chord": new Chordplayer("elecpiano", N_VOICES_PER_INSTRUMENT, "updown"),
+            "bass": new Chordplayer("basssynth", 1, "down") /* this is just a bass note, played an octave below the 'chord' chordplayer */
         };
         start_prompt_screen.remove();
 
