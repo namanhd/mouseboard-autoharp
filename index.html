@@ -41,6 +41,8 @@
         }
         
         .basspad-circle {
+            width:160px;
+            height:160px;
             background-color:rgb(222, 237, 255);
             border-radius: 50%;
         }
@@ -48,20 +50,42 @@
             background-color: rgb(244, 255, 253);
         }
         .basspad-tonnetz {
+            width:160px;
+            height:160px;
             background-color:#ffebb0;
             border-radius: 10%;
         }
         .basspad-tonnetz:hover {
             background-color: #fffada;
         }
+        .basspad-chromatic-whitekey {
+            height: 320px;
+            width: 110px;
+            background-color:ivory;
+            border-radius: 10px;
+        }
+        .basspad-chromatic:hover {
+            background-color: white;
+        }
+        .basspad-chromatic-blackkey {
+            height: 240px;
+            width: 60px;
+            background-color:lightblue;
+            border-radius: 10px;
+            z-index: 3;
+        }
+        .basspad-chromatic-blackkey:hover {
+            background-color: lightcyan;
+        }
+
         .basspad {
             font-size: 20pt;
             float:left;
             position:absolute;
             user-select: none;
+            border: 1px solid black;
             
-            width:160px;
-            height:160px;
+            
             text-align: center;
             display:flex;
             flex-direction: column;
@@ -71,11 +95,11 @@
             box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
-            transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.3s, box-shadow 0.2s, -webkit-box-shadow 0.2s, -moz-box-shadow 0.2s, width 0.2s, height 0.2s;
+            
+            transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.3s, box-shadow 0.2s, -webkit-box-shadow 0.2s, -moz-box-shadow 0.2s, transform 0.2s, width 0.2s, height 0.2s;
         }
         .basspad:hover {
-            width: 170px;
-            height: 170px;
+            transform: translate(-50%) scale(1.0625);
             box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
@@ -166,6 +190,10 @@
             padding-bottom: 10px;
             max-height: 100%;
         }
+        .collapsible-button-caret {
+            transform:translateX(-10px);
+        }
+
         .autocomposer-child {
             margin: 6px;
         }
@@ -183,8 +211,9 @@
             
             aspect-ratio: 1/1;  
             cursor:pointer;
+            user-select: none;
             
-            transition: background-color 0.1s, box-shadow 0.1s, -webkit-box-shadow 0.1s, -moz-box-shadow 0.1s;
+            transition: background-color 0.1s, transform 0.08s, box-shadow 0.1s, -webkit-box-shadow 0.1s, -moz-box-shadow 0.1s;
             box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
@@ -194,6 +223,9 @@
             box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+        }
+        .autocomposer-button:active {
+            transform: scale(0.9);
         }
 
         #autocomposer-info-display {
@@ -226,7 +258,7 @@
     <div id="info-panel">
         <div id="chord-symbol-display"></div>
         <div class="collapsible-container">
-            <button class="button-toggle collapsible-button">Basic instructions</button>
+            <button class="button-toggle collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>Basic instructions</button>
             <div class="collapsible-content collapsible-content-active">
                 <div>
                     <p>
@@ -243,19 +275,19 @@
                         key (`) to reset the voice leading memory. 
                     </p>
                     <p>
-                        There are two circle-of-fifths-based layouts available for the bass note pads.
+                        There are two circle-of-fifths-based layouts and one piano layout available for the bass note pads.
                     </p>
                 </div>
             </div>
         </div>
-        <button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle layout and Tonnetz layout</button>
+        <button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle, Tonnetz, and Piano layouts</button>
         <div class="collapsible-container">
-            <button class="button-toggle collapsible-button">Quick playing tips</button>
+            <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Quick playing tips</button>
             <div class="collapsible-content">
                 <ul>
                     <li><b>Two-five-one: </b>  Hover over three consecutive pads (in counterclockwise order) and press <b>z+s, z+d, z+f</b> respectively.
                         You get a nice ii-V-I progression using the minor 9th, dominant 9th, and major 9th voicings.</li>
-                    <li><b>More progressions: </b> Other progressions to try (again while stepping CCW around the circle) is <b>z+s, z+d, z+f, z+g, z+s, z+t, z+f</b> (m9, 9, M9, sus7, m9, 7#5, M9).
+                    <li><b>More progressions: </b> Other progressions to try (again while stepping CCW around the circle) is <b>z+s, z+d, z+f, z+g, z+s, z+t, z+f</b> (m9, 9, M9, sus13, m9, 7#5, M9).
                     Yet another cool progression around the circle: <b>z+s, z+r, z+s, z+r, z+s, z+d, z+f</b>. Jazzy!</li>
                     <li><b>Slash chords: </b> play a voicing, and while holding down the voicing button, move your mouse to a different pad and press <b>z</b> to play the new bass note.
                     You have (most likely) played a <i>slash chord</i>, where the bass note is different from the bass note implied by the upper notes!</li>
@@ -263,7 +295,7 @@
             </div>
         </div>
         <div class="collapsible-container">
-            <button class="button-toggle collapsible-button">Bossa Nova Autocomposer <i>(highly experimental!)</i></button>
+            <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Bossa Nova Autocomposer <i>(highly experimental!)</i></button>
             <div class="collapsible-content autocomposer-ui">
                 <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child fa">▶</button>
                 <div id="autocomposer-info-display" class="autocomposer-child">Press play to start</div>
@@ -280,6 +312,12 @@
     for (const collapsibleButton of collapsibleButtons) {
         collapsibleButton.addEventListener("click", () => {
             collapsibleButton.nextElementSibling.classList.toggle("collapsible-content-active");
+            const caretInButtonClassList = collapsibleButton.firstElementChild.classList;
+            if (caretInButtonClassList.contains("fa")) {
+                caretInButtonClassList.toggle("fa-caret-right");
+                caretInButtonClassList.toggle("fa-caret-down");
+            }
+            
         })
     }
     /* audio stuff.. first setup main mouseboard interface and audio, then

@@ -3,17 +3,17 @@
 /* state for the autocomposer */
 const COMPOSER_STATE = {
     "currentlyPlaying": false,
-    "targetKey": undefined, /* should be {"label": string, "cents": number} */
+    "keyCenterCOFIndicesQueued": [], /* should be a list of circleOfFifthsIndex values */
     "currentKey": undefined, /* same format as targetKey */
     "barsQueued": [], /* bars of music queued up. see makeBossaHoldingPattern for generating one bar */
     // melodyplayer: todo... meowsynth player that plays melody on top of the chord progy.
     "currentlyPlayingBarName": "",
     "howManyBarsPlayed": 0, /* so that we know which Tone.Transport bar/measure is the latest to schedule new bars at */
-    "transportRepeaterEvent": undefined
 }
 
 const centDistToCircleOfFifthsDist = c => (5*c/100) % 12 + (c < 0 ? 12 : 0);
 
+const randomlyLengthen = t => t + Math.random() * 0.2;
 
 function makeBossaHoldingPattern(variation, voicingButton) {
     /* duration is bars:quarternotes:sixteenthnotes*/
@@ -24,13 +24,13 @@ function makeBossaHoldingPattern(variation, voicingButton) {
         patternEvents = [
             {"key": "z", "time": "0:0", "duration": "8n"},
             {"key": voicingButton, "time": "0:0:2", "duration": "16n"},
-            {"key": "z", "time": "0:0:3", "duration": "16n"},
-            {"key": "a", "time": "0:0:4", "duration": "16n"},
+            {"key": "z", "time": "0:0:3", "duration": Tone.Time("16n")-0.1},
+            {"key": "a", "time": "0:0:4", "duration": randomlyLengthen(Tone.Time("16n"))},
             {"key": voicingButton, "time": "0:0:5", "duration": "16n"},
-            {"key": "a", "time": "0:0:7", "duration": "16n"},
+            {"key": "a", "time": "0:0:7", "duration": Tone.Time("16n")-0.1},
             {"key": "z", "time": "0:0:8", "duration": "16n"},
-            {"key": voicingButton, "time": "0:0:9", "duration": "16n"},
-            {"key": "z", "time": "0:0:11", "duration": "16n"},
+            {"key": voicingButton, "time": "0:0:9", "duration": randomlyLengthen(Tone.Time("16n"))},
+            {"key": "z", "time": "0:0:11", "duration": Tone.Time("16n")-0.1},
             {"key": "a", "time": "0:0:12", "duration": "8n"},
             {"key": voicingButton, "time": "0:0:14", "duration": "16n"},
         ];
@@ -62,11 +62,34 @@ function updateAutoComposerDisplay() {
     autoComposerInfoDisplay.append(currentBarInfoElem, document.createElement("br"), miscInfoElem);
 }
 
+function interpretPatternEvent(event) {
+    /* schedule chordtriggers and manipulate MOUSEBOARD_STATE based on our
+     * pattern event data. All events contain field "time" : number | Tone.Time */
+    if (event.key !== undefined) {
+        /* key press event, containing "key" (char representing keyboard key)
+        and "duration" (number or Tone.Time) fields. */
+        ChordTriggers.on(event.key, true, Tone.Time(event.duration), Tone.Transport.seconds + Tone.Time(event.time));
+    }
+    else if (event.bassCOFshift !== undefined) {
+        /* bass change event, change MOUSEBOARD_STATE's selected bass. Contains
+         bassCOFshift field, which is the offset (in circle of fifths index!!
+         not cents!!) that is then interpreted as the amount to shift in cents
+         via the circleOfFifthsQueryFn */
+        const newBassCOFIndex = event.bassCOFshift + MOUSEBOARD_STATE.bassNoteSelectedAsCOFIndex;
+        /* we do not rely on the basspads array here! this lets us select cents
+         * and pitches independently of what the defined basspads are, only
+         * using the circleOfFifthsQueryFn (which is called inside globallySelectNewBass)  */
+        Tone.Transport.scheduleOnce(_ => {
+            globallySelectNewBass(newBassCOFIndex);
+        }, Tone.Transport.seconds + Tone.Time(event.time));
+    }
+}
+
 function startAutoComposer() {
     Tone.Transport.bpm.value = 80;
     Tone.Transport.cancel(0);
     ChordTriggers.sync();
-    COMPOSER_STATE.transportRepeaterEvent = Tone.Transport.scheduleRepeat(_ => {
+    Tone.Transport.scheduleRepeat(_ => {
         let bar = COMPOSER_STATE.barsQueued.pop();
         if (!bar) {
             /* if there is no queued bar, just go into the holding pattern */
@@ -76,13 +99,12 @@ function startAutoComposer() {
          * actually global time, not transport seek position. For that we can
          * use Tone.Transport.seconds. */
         for (const event of bar.events) {
-            ChordTriggers.on(event.key, true, Tone.Time(event.duration), Tone.Transport.seconds + Tone.Time(event.time));
+            interpretPatternEvent(event);
         }
         COMPOSER_STATE.currentlyPlayingBarName = bar.name;
         COMPOSER_STATE.howManyBarsPlayed++;
         updateAutoComposerDisplay();
     }, "1m", 0);
-    console.log("scheduled measure-filling event to repeat every measure");
     
     Tone.Transport.start();
 }
@@ -90,8 +112,7 @@ function startAutoComposer() {
 function stopAutoComposer() {
     Tone.Transport.stop();
     Tone.Transport.cancel(0);
-    COMPOSER_STATE.transportRepeaterEvent = undefined;
-
+    COMPOSER_STATE.keyCenterCOFIndicesQueued = [];
     COMPOSER_STATE.howManyBarsPlayed = 0;
     ChordTriggers.unsync(); /* return manual control over trigger inputs */
     ChordTriggers.allOff(); /* force turn off any hanging notes */
@@ -115,13 +136,15 @@ function setupAutoComposer() {
         }
     }
     const playButton = document.getElementById("autocomposer-play-button");
-    playButton.addEventListener("click", e => togglePlayWithButton(playButton));
+    playButton.addEventListener("click", _ => togglePlayWithButton(playButton));
 
     /* add click events to the basspads */
-    const targetNewKeyFromBasspad = (label, cents) => {
-        COMPOSER_STATE.targetKey = {"label": label, "cents": cents};
+    const targetNewKeyFromBasspad = (circleOfFifthsIndex) => {
+        if (COMPOSER_STATE.currentlyPlaying) {
+            COMPOSER_STATE.keyCenterCOFIndicesQueued.push(circleOfFifthsIndex);
+        }
     }
-    for (const basspad of STATE.basspads) {
-        basspad.element.addEventListener("click", targetNewKeyFromBasspad(basspad.label, basspad.cents));
+    for (const basspad of MOUSEBOARD_STATE.basspads) {
+        basspad.element.addEventListener("click", _ => targetNewKeyFromBasspad(basspad.circleOfFifthsIndex));
     }
 }

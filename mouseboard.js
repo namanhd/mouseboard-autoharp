@@ -4,18 +4,21 @@
 
 const BASE_FREQ = 261.625/2;
 const N_VOICES_PER_INSTRUMENT = 4;
-const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 4;
+const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 6;
 
 /* "application state", things that can change over the course of execution */
-const STATE = {
+const MOUSEBOARD_STATE = {
     "basspads":  undefined,
     "chordplayers": undefined,
-    "info_bassNoteSelected": "C", 
-    /* ^ this isn't shown in chorddisplay but is used in setting the other ones correctly */
+    "bassNoteSelected": {"label": "C", "cents": 0, "cofIndex": 0},
+    /* ^ this isn't shown in chorddisplay but is used in setting the other ones
+     * correctly. This will also be edited live by the autocomposer to play its
+     * chords. */
     "info_bassNotePlaying": "",
     "info_bassNoteImpliedByVoicing": "",
     "info_voicing": "",
-    "basspadLayout": "circle",
+    /* layout config */
+    "basspadLayout": "circle"
 };
 
 function centsToRatio(c) {
@@ -32,26 +35,26 @@ function updateChordDisplay() {
     
     /* the selected bass is the most recently hovered-on bass note. 
     It may be different from the bass note that is actually playing (which may 
-    have been held from earlier), stored in STATE.info_bassNotePlaying, and
+    have been held from earlier), stored in MOUSEBOARD_STATE.info_bassNotePlaying, and
     different from the bass note implied by the voicing that is playing (which
     is the selected bass note from when the voicing was triggered, stored in 
-    STATE.info_bassNoteImpliedByVoicing.)
-    STATE.info_voicing is empty when no voicing is currently played.
+    MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing.)
+    MOUSEBOARD_STATE.info_voicing is empty when no voicing is currently played.
     */
-    impliedBassElem.append(STATE.info_bassNoteImpliedByVoicing);
-    playingBassElem.append(STATE.info_bassNotePlaying);
-    voicingElem.append(STATE.info_voicing);
+    impliedBassElem.append(MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing);
+    playingBassElem.append(MOUSEBOARD_STATE.info_bassNotePlaying);
+    voicingElem.append(MOUSEBOARD_STATE.info_voicing);
 
-    if (STATE.info_bassNoteImpliedByVoicing === STATE.info_bassNotePlaying) {
+    if (MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing === MOUSEBOARD_STATE.info_bassNotePlaying) {
         chordSymbolDisplay.append(playingBassElem, voicingElem);
     }
     else {
-        chordSymbolDisplay.append(impliedBassElem, voicingElem, (STATE.info_bassNotePlaying === "" ? "" : "/"), playingBassElem);
+        chordSymbolDisplay.append(impliedBassElem, voicingElem, (MOUSEBOARD_STATE.info_bassNotePlaying === "" ? "" : "/"), playingBassElem);
     }
     
-    playingBassElem.style.color = STATE.info_bassNotePlaying === "" ? "lightgray" : "mediumslateblue";
-    voicingElem.style.color = STATE.info_voicing === "" ? "lightgray" : "mediumslateblue";
-    impliedBassElem.style.color = STATE.info_bassNoteImpliedByVoicing === "" ? "lightgray": "lightblue";
+    playingBassElem.style.color = MOUSEBOARD_STATE.info_bassNotePlaying === "" ? "lightgray" : "mediumslateblue";
+    voicingElem.style.color = MOUSEBOARD_STATE.info_voicing === "" ? "lightgray" : "mediumslateblue";
+    impliedBassElem.style.color = MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing === "" ? "lightgray": "lightblue";
 }
 
 
@@ -217,7 +220,7 @@ class Voice {
         const distancesToLastPlayedCents = tries.map(c => Math.abs(c - this.lastPlayedCents));
         let result = tries[distancesToLastPlayedCents.indexOf(Math.min(...distancesToLastPlayedCents))];
         result = Math.min(Math.max(result, cents - 1200), cents + 2400);
-        if (result < 0) {
+        if (result < 0 || result > 3100) {
             return cents;
         }
         if (result < cents) {
@@ -325,11 +328,23 @@ class Chordplayer {
     }
 }
 
+function globallySelectNewBass(circleOfFifthsIndex) {
+    const {label, cents} = circleOfFifthsQueryFn(circleOfFifthsIndex);
+    MOUSEBOARD_STATE.chordplayers.bass.bassCents = cents;
+    MOUSEBOARD_STATE.chordplayers.chord.bassCents = cents;
+    
+    MOUSEBOARD_STATE.bassNoteSelected.label = label;
+    MOUSEBOARD_STATE.bassNoteSelected.cents = cents; 
+    MOUSEBOARD_STATE.bassNoteSelected.cofIndex = circleOfFifthsIndex;
+    updateChordDisplay();
+    return MOUSEBOARD_STATE.bassNoteSelected;
+}
 
 /* A basspad represents a hoverable pad labeled with a bass note. On hover it 
  will change the bass note of the chordplayers to the labeled note. */
 class Basspad {
-    constructor(label, cents, element) {
+    constructor(circleOfFifthsIndex, label, cents, element) {
+        this.circleOfFifthsIndex = circleOfFifthsIndex;
         this.label = label;
         this.cents = cents;
         this.element = element;  /* the html element for this basspad*/
@@ -339,10 +354,18 @@ class Basspad {
     hover(self) {
         /* activates on hover... changes the current bass note of the
         chordplayers to the pad's cents */
-        STATE.chordplayers.bass.bassCents = self.cents;
-        STATE.chordplayers.chord.bassCents = self.cents;
-        STATE.info_bassNoteSelected = self.label;
-        updateChordDisplay()
+        const {label, cents, _} = globallySelectNewBass(self.circleOfFifthsIndex);
+        self.label = label;
+        self.cents = cents;
+        /* The idea is that a basspad can have its label and cents be
+        dynamically changed depending on what the circle-of-fifths query
+        function returns (i.e. can dynamically adjust cents based on last played
+        bass or voices for instance), but the basspad's circle-of-fifths index
+        should never change (i.e. its meaning and position in the circle of
+        fifths stays constant, only its label and cent value may change.) This
+        all relies on how the circleOfFifthsQueryFn is implemented of course,
+        but it should give consistency of some form to the same basspad selected
+        at different points in time */
     }
 }
 
@@ -354,15 +377,17 @@ const KEYBOARD_TO_VOICING_MAP =
   , "x": {"name": "m7", "bass": [], "chord": [0, 300, 700, 1000], "voicelead":true, "hidden": false}
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true, "hidden": false}
   , "v": {"name": "M7", "bass": [], "chord": [0, 400, 700, 1100], "voicelead": true, "hidden": false}
+  , "b": {"name": "sus13", "bass": [], "chord": [0, 1000, 1700, 2100], "voicelead": true, "hidden": false}
   , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true, "hidden": false}
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}
-  , "g": {"name": "sus7", "bass": [], "chord": [0, 1000, 1400, 1700], "voicelead": true, "hidden": false}
-  , "w": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
-  , "e": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
-  , "r": {"name": "alt", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false}
-  , "t": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
-  , "y": {"name": "7♭9", "bass": [], "chord": [0, 1000, 1300, 1900], "voicelead": false, "hidden": false}
+  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": true, "hidden": false}
+  , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
+  , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
+  , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
+  , "t": {"name": "alt", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false}
+  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
   }
 
 class ChordTriggers {
@@ -398,15 +423,15 @@ class ChordTriggers {
         if (eType === "keydown" && !(eRepeat)) {
             const triggerSpec = KEYBOARD_TO_VOICING_MAP[eKey];
             if (triggerSpec && ((!calledManually && !triggerSpec.hidden) || (calledManually))) {
-                const bassTurnedOn = STATE.chordplayers.bass.on(eKey, triggerSpec.bass, undefined, 1.0, false, scheduledDuration, scheduledTime);
-                const chordTurnedOn = STATE.chordplayers.chord.on(eKey, triggerSpec.chord, undefined, 0.8, triggerSpec.voicelead, scheduledDuration, scheduledTime); /* lower velocity so we dont clip so horribly*/
+                const bassTurnedOn = MOUSEBOARD_STATE.chordplayers.bass.on(eKey, triggerSpec.bass, undefined, 1.0, false, scheduledDuration, scheduledTime);
+                const chordTurnedOn = MOUSEBOARD_STATE.chordplayers.chord.on(eKey, triggerSpec.chord, undefined, 0.8, triggerSpec.voicelead, scheduledDuration, scheduledTime); /* lower velocity so we dont clip so horribly*/
                 if (chordTurnedOn) {
-                    STATE.info_voicing = triggerSpec.name;
-                    STATE.info_bassNoteImpliedByVoicing = STATE.info_bassNoteSelected;
+                    MOUSEBOARD_STATE.info_voicing = triggerSpec.name;
+                    MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = MOUSEBOARD_STATE.bassNoteSelected.label;
                 }
                 
                 if (bassTurnedOn) {
-                    STATE.info_bassNotePlaying = STATE.info_bassNoteSelected;
+                    MOUSEBOARD_STATE.info_bassNotePlaying = MOUSEBOARD_STATE.bassNoteSelected.label;
                 }
                 
                 updateChordDisplay();
@@ -414,8 +439,8 @@ class ChordTriggers {
             else {
                 if (eKey === "`") {
                     /* reset voice leading */
-                    STATE.chordplayers.chord.voices.forEach(voice => voice.resetVoiceLeadingMemory());
-                    STATE.chordplayers.bass.voices.forEach(voice => voice.resetVoiceLeadingMemory());
+                    MOUSEBOARD_STATE.chordplayers.chord.voices.forEach(voice => voice.resetVoiceLeadingMemory());
+                    MOUSEBOARD_STATE.chordplayers.bass.voices.forEach(voice => voice.resetVoiceLeadingMemory());
                 }
             }
         }
@@ -433,33 +458,33 @@ class ChordTriggers {
         else {
             eKey = e.key;
         }
-        /* if the keyup off event is for STATE.chordplayers.bass then it should
-         * clear the STATE.info_bassNotePlaying value */
-        if (STATE.chordplayers.bass.off(eKey) === true) {
-            STATE.info_bassNotePlaying = "";
+        /* if the keyup off event is for MOUSEBOARD_STATE.chordplayers.bass then it should
+         * clear the MOUSEBOARD_STATE.info_bassNotePlaying value */
+        if (MOUSEBOARD_STATE.chordplayers.bass.off(eKey) === true) {
+            MOUSEBOARD_STATE.info_bassNotePlaying = "";
         }
-        if (STATE.chordplayers.chord.off(eKey) === true) {
-            STATE.info_voicing = "";
-            STATE.info_bassNoteImpliedByVoicing = "";
+        if (MOUSEBOARD_STATE.chordplayers.chord.off(eKey) === true) {
+            MOUSEBOARD_STATE.info_voicing = "";
+            MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = "";
         }
         updateChordDisplay();
     }
 
     static allOff() {
-        STATE.chordplayers.bass.off(STATE.chordplayers.bass.currentlyPlayingDueToTrigger);
-        STATE.chordplayers.chord.off(STATE.chordplayers.chord.currentlyPlayingDueToTrigger);
-        STATE.info_voicing = "";
-        STATE.info_bassNoteImpliedByVoicing = "";
-        STATE.info_bassNotePlaying = "";
+        MOUSEBOARD_STATE.chordplayers.bass.off(MOUSEBOARD_STATE.chordplayers.bass.currentlyPlayingDueToTrigger);
+        MOUSEBOARD_STATE.chordplayers.chord.off(MOUSEBOARD_STATE.chordplayers.chord.currentlyPlayingDueToTrigger);
+        MOUSEBOARD_STATE.info_voicing = "";
+        MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = "";
+        MOUSEBOARD_STATE.info_bassNotePlaying = "";
     }
 
     static sync() {
-        STATE.chordplayers.bass.sync();
-        STATE.chordplayers.chord.sync();
+        MOUSEBOARD_STATE.chordplayers.bass.sync();
+        MOUSEBOARD_STATE.chordplayers.chord.sync();
     }
     static unsync() {
-        STATE.chordplayers.bass.unsync();
-        STATE.chordplayers.chord.unsync();
+        MOUSEBOARD_STATE.chordplayers.bass.unsync();
+        MOUSEBOARD_STATE.chordplayers.chord.unsync();
     }
 }
 
@@ -490,23 +515,25 @@ let circleOfFifthsQueryFn = queryCircleOfFifths12EDO; /* change this out */
 
 /* lay out the basspads in either a circle of fifths or a tonnetz grid */
 function layoutBasspads(style=undefined) {
-    const n_basspads = STATE.basspads.length;
+    const n_basspads = MOUSEBOARD_STATE.basspads.length;
 
     if (!style) {
-        /* toggle depending on the style stored in STATE */
-        style = STATE.basspadLayout === "circle" ? "tonnetz" : "circle";
-        STATE.basspadLayout = style;
+        /* toggle depending on the style stored in MOUSEBOARD_STATE */
+        style = {"circle": "tonnetz", "tonnetz": "chromatic", "chromatic": "circle"}[MOUSEBOARD_STATE.basspadLayout];
+        MOUSEBOARD_STATE.basspadLayout = style;
     }
     if (style === "circle") {
         const arc = 2 * Math.PI / n_basspads;
         const startAngle = 0.5 * Math.PI;
         const radiusPercentage = 35;
 
-        for (const i in STATE.basspads) {
+        for (const i in MOUSEBOARD_STATE.basspads) {
             const angle = startAngle + (-i) * arc;
-            const basspadElem = STATE.basspads[i].element;
+            const basspadElem = MOUSEBOARD_STATE.basspads[i].element;
             
             basspadElem.classList.remove("basspad-tonnetz");
+            basspadElem.classList.remove("basspad-chromatic-blackkey");
+            basspadElem.classList.remove("basspad-chromatic-whitekey");
             basspadElem.classList.add("basspad-circle");
             
             basspadElem.style.top = (40 - Math.sin(angle) * radiusPercentage) + "%";
@@ -518,17 +545,47 @@ function layoutBasspads(style=undefined) {
         const sepPercentage = 20;
         const topOffset = 20;
         const leftOffset = 20;
-        for (const i in STATE.basspads) {
+        for (const i in MOUSEBOARD_STATE.basspads) {
             const gridCol = i % 4;
             const gridRow = Math.floor(i / 4);
-            const basspadElem = STATE.basspads[i].element;
+            const basspadElem = MOUSEBOARD_STATE.basspads[i].element;
             
             basspadElem.classList.remove("basspad-circle");
+            basspadElem.classList.remove("basspad-chromatic-blackkey");
+            basspadElem.classList.remove("basspad-chromatic-whitekey");
             basspadElem.classList.add("basspad-tonnetz");
 
             basspadElem.style.top = topOffset + (gridRow * sepPercentage + (gridRow - 1) * gapPercentage) + "%";
             basspadElem.style.left = leftOffset + (gridRow - 1)*(sepPercentage/2 + gapPercentage/4) + (gridCol * sepPercentage + (gridCol - 1) * gapPercentage) + "%";
         }
+    }
+    else if (style === "chromatic") {
+        const wSepPercentage = 14.5;
+        const bSepPercentage = 7.25;
+        const topOffset = 30;
+        const leftOffset = 8;
+        const blackKeysCols = [8, 10, 1, 3, 5];
+        const blackKeysOffsets = [1, 3, 7, 9, 11];
+        const whiteKeysCols = [7,9,11,0,2,4,6];
+
+
+        for (const wCol in whiteKeysCols) {
+            const basspadElem = MOUSEBOARD_STATE.basspads[whiteKeysCols[wCol] * 7 % 12].element;
+            basspadElem.classList.remove("basspad-circle");
+            basspadElem.classList.remove("basspad-tonnetz");
+            basspadElem.classList.add("basspad-chromatic-whitekey");
+            basspadElem.style.top = topOffset + "%";
+            basspadElem.style.left = leftOffset + wCol * wSepPercentage + "%";
+        }
+        for (const bCol in blackKeysCols) {
+            const basspadElem = MOUSEBOARD_STATE.basspads[blackKeysCols[bCol] * 7 % 12].element;
+            basspadElem.classList.remove("basspad-circle");
+            basspadElem.classList.remove("basspad-tonnetz");
+            basspadElem.classList.add("basspad-chromatic-blackkey");
+            basspadElem.style.top = topOffset + "%";
+            basspadElem.style.left = bSepPercentage + leftOffset + (blackKeysOffsets[bCol]-1) * bSepPercentage + "%";
+        }
+        
     }
 }
 
@@ -542,20 +599,21 @@ function setupBasspads() {
         const basspadElem = document.createElement("div");
         basspadElem.classList = "basspad";
         
-        const basspad_spec = circleOfFifthsQueryFn(i);
+        const basspadSpec = circleOfFifthsQueryFn(i);
         
 
-        basspadElem.append((e => {e.textContent = (basspad_spec.label); return e;})(document.createElement("b")), document.createElement("br"), basspad_spec.cents);
+        basspadElem.append((e => {e.textContent = (basspadSpec.label); return e;})(document.createElement("b")), document.createElement("br"), basspadSpec.cents);
         cof.appendChild(basspadElem);
 
         /* initialize it as an object and put it in the state */
-        const basspad = new Basspad(basspad_spec.label, basspad_spec.cents, basspadElem);
+        const basspad = new Basspad(i, basspadSpec.label, basspadSpec.cents, basspadElem);
         basspads[i] = basspad;
+        // MOUSEBOARD_STATE.lookupBasspadByCents[basspadSpec.cents] = basspad;
     }
 
-    STATE.basspads = basspads;
+    MOUSEBOARD_STATE.basspads = basspads;
     
-    layoutBasspads(STATE.basspadLayout);
+    layoutBasspads(MOUSEBOARD_STATE.basspadLayout);
 }
 
 function setup(callbacksAfterwards) {
@@ -563,7 +621,7 @@ function setup(callbacksAfterwards) {
     start_prompt_screen?.addEventListener("click", async () => {
         await Tone.start()
         console.log("tonejs ready");
-        STATE.chordplayers = {
+        MOUSEBOARD_STATE.chordplayers = {
             "chord": new Chordplayer("elecpiano", N_VOICES_PER_INSTRUMENT, "updown"),
             "bass": new Chordplayer("basssynth", 1, "down") 
             /* this is just a bass note, played an octave below the 'chord' chordplayer */
