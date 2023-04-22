@@ -5,6 +5,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         body {
             font-family:'Source Sans Pro', sans-serif;
@@ -96,14 +97,17 @@
             box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
-            border: 0px solid black;
-            transition: background-color 0.1s, box-shadow 0.1s
+            border: 1px solid slategrey;
+            transition: background-color 0.1s, box-shadow 0.1s, transform 0.08s;
         }
         .button-toggle:hover {
             background-color:rgb(190, 242, 255);
             box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+        }
+        .button-toggle:active {
+            transform: scale(0.95);
         }
         .container {
             display:flex;
@@ -123,7 +127,7 @@
         }
 
         #info-panel {
-            width: 33%;
+            width: 32%;
             margin-left: auto;
             margin-right: auto;
         }
@@ -137,10 +141,78 @@
         #debugbox {
             font-family:'Courier New', Courier, monospace;
         }
+
+        .collapsible-container {
+            display:block;
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+        .collapsible-content {
+            background-color:aliceblue; 
+            width: 96%; 
+            border-radius: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+            display: flex;
+            max-height: 0;
+            transition: max-height 0.2s, padding-top 0.2s, padding-bottom 0.2s;
+        }
+        .collapsible-content-active {
+            /* display: flex;  */
+            padding-top: 10px;
+            padding-bottom: 10px;
+            max-height: 100%;
+        }
+        .autocomposer-child {
+            margin: 6px;
+        }
+        
+        .autocomposer-button {
+            border-radius: 12px;
+            border: 0px solid black;
+            background-color:slategrey;
+            color: white;
+            display:inline-block;
+            text-align: center;
+            font-size: 1.75rem;
+            /* font-weight: 700; */
+            padding: 10px 15px;
+            
+            aspect-ratio: 1/1;  
+            cursor:pointer;
+            
+            transition: background-color 0.1s, box-shadow 0.1s, -webkit-box-shadow 0.1s, -moz-box-shadow 0.1s;
+            box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 6px 10px -8px rgba(0,0,0,0.73);
+        }
+        .autocomposer-button:hover {
+            background-color:steelblue;
+            box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+        }
+
+        #autocomposer-info-display {
+            border: 1px dashed black;
+            border-radius: 12px;
+            display: inline-block;
+            background-color:darkslategray;
+            color: white;
+            font-size: 10pt;
+            padding: 10px 15px;
+            height: 32px;
+            width: 100%;
+            vertical-align: middle;
+        }
     </style>
     <!-- tone.js import -->
     <script src="https://tonejs.github.io/build/Tone.js"></script>
     <script src="mouseboard.js"></script>
+    <script src="autocompose.js"></script>
 </head>
 
 <body>
@@ -153,45 +225,67 @@
 
     <div id="info-panel">
         <div id="chord-symbol-display"></div>
-        <p>
-        Hover over the pads to select a bass note. Use the keyboard to play chord voicings on the current bass note.
-        Press <b>z</b> to play just the current bass note; you can hold/release it independently of the voicing buttons. 
-        The chord name will appear in the box above.
-        </p>
-        
-        <p>
-            Here is a list of the available voicings.
-            <ul id="list-chord-keyboard-mapping"></ul>
-            There is automatic voice leading (i.e. the voices will adjust their octave
-            to be closest to their last played note). This can sometimes go wrong, though. Press the backtick
-            key (`) to reset the voice leading memory. 
-        </p>
-        <p>
-            There are two circle-of-fifths-based layouts available for the bass note pads. <br>
-
-            <button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle layout and Tonnetz layout</button>
-        </p>
-
-        
-        <details style="background-color:aliceblue; width: 100%">
-            <summary class="button-toggle" style="width: 96%">Show some quick playing tips...</summary>
-            <ul>
-                <li><b>Two-five-one: </b>  Hover over three consecutive pads (in counterclockwise order) and press <b>z+s, z+d, z+f</b> respectively.
-                    You get a nice ii-V-I progression using the minor 9th, dominant 9th, and major 9th voicings.</li>
-                <li><b>More progressions: </b> Other progressions to try (again while stepping CCW around the circle) is <b>z+s, z+d, z+f, z+g, z+s, z+t, z+f</b> (m9, 9, M9, sus7, m9, 7#5, M9).
-                Yet another cool progression around the circle: <b>z+s, z+r, z+s, z+r, z+s, z+d, z+f</b>. Jazzy!</li>
-                <li><b>Slash chords: </b> play a voicing, and while holding down the voicing button, move your mouse to a different pad and press <b>z</b> to play the new bass note.
-                You have (most likely) played a <i>slash chord</i>, where the bass note is different from the bass note implied by the upper notes!</li>
-            </ul>
-        </details>
-    
+        <div class="collapsible-container">
+            <button class="button-toggle collapsible-button">Basic instructions</button>
+            <div class="collapsible-content collapsible-content-active">
+                <div>
+                    <p>
+                    Hover over the pads to select a bass note. Use the keyboard to play chord voicings on the current bass note.
+                    Press <b>z</b> to play just the current bass note; you can hold/release it independently of the voicing buttons. 
+                    The chord name will appear in the box above.
+                    </p>
+                    
+                    <p>
+                        Here is a list of the available voicings.
+                        <ul id="list-chord-keyboard-mapping"></ul>
+                        There is automatic voice leading (i.e. the voices will adjust their octave
+                        to be closest to their last played note). This can sometimes go wrong, though. Press the backtick
+                        key (`) to reset the voice leading memory. 
+                    </p>
+                    <p>
+                        There are two circle-of-fifths-based layouts available for the bass note pads.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle layout and Tonnetz layout</button>
+        <div class="collapsible-container">
+            <button class="button-toggle collapsible-button">Quick playing tips</button>
+            <div class="collapsible-content">
+                <ul>
+                    <li><b>Two-five-one: </b>  Hover over three consecutive pads (in counterclockwise order) and press <b>z+s, z+d, z+f</b> respectively.
+                        You get a nice ii-V-I progression using the minor 9th, dominant 9th, and major 9th voicings.</li>
+                    <li><b>More progressions: </b> Other progressions to try (again while stepping CCW around the circle) is <b>z+s, z+d, z+f, z+g, z+s, z+t, z+f</b> (m9, 9, M9, sus7, m9, 7#5, M9).
+                    Yet another cool progression around the circle: <b>z+s, z+r, z+s, z+r, z+s, z+d, z+f</b>. Jazzy!</li>
+                    <li><b>Slash chords: </b> play a voicing, and while holding down the voicing button, move your mouse to a different pad and press <b>z</b> to play the new bass note.
+                    You have (most likely) played a <i>slash chord</i>, where the bass note is different from the bass note implied by the upper notes!</li>
+                </ul>
+            </div>
+        </div>
+        <div class="collapsible-container">
+            <button class="button-toggle collapsible-button">Bossa Nova Autocomposer <i>(highly experimental!)</i></button>
+            <div class="collapsible-content autocomposer-ui">
+                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child fa">▶</button>
+                <div id="autocomposer-info-display" class="autocomposer-child">Press play to start</div>
+            </div>
+        </div>
         
     </div>
 </div>
 <div id="start-prompt-screen"><h2>click to start</h2></div>
 
 <script>
-    setup();
+    /* collapsible info divs */
+    const collapsibleButtons = document.getElementsByClassName("collapsible-button");
+    for (const collapsibleButton of collapsibleButtons) {
+        collapsibleButton.addEventListener("click", () => {
+            collapsibleButton.nextElementSibling.classList.toggle("collapsible-content-active");
+        })
+    }
+    /* audio stuff.. first setup main mouseboard interface and audio, then
+     * setup the autocomposer as a callback after successful mouseboard setup */
+    setup(setupAutoComposer);
+
 </script>
 </body>
 </html>
