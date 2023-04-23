@@ -10,7 +10,7 @@ const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 6;
 const MOUSEBOARD_STATE = {
     "basspads":  undefined,
     "chordplayers": undefined,
-    "bassNoteSelected": {"label": "C", "cents": 0, "cofIndex": 0},
+    "bassNoteSelected": {"label": "C", "cents": 0, "cofIndex": 1},
     /* ^ this isn't shown in chorddisplay but is used in setting the other ones
      * correctly. This will also be edited live by the autocomposer to play its
      * chords. */
@@ -285,7 +285,7 @@ class Chordplayer {
             return false;
         }
         /* the "currentlyPlayingDueToTrigger" is only relevant if triggered by
-         * keyboard, NOT when scheduled via other code */
+         * keyboard, NOT when scheduled via other code (related to calledManually) */
         if (scheduledDuration === undefined || scheduledTime === undefined) {
             this.currentlyPlayingDueToTrigger = triggeredBy;
         }
@@ -336,7 +336,6 @@ function globallySelectNewBass(circleOfFifthsIndex) {
     MOUSEBOARD_STATE.bassNoteSelected.label = label;
     MOUSEBOARD_STATE.bassNoteSelected.cents = cents; 
     MOUSEBOARD_STATE.bassNoteSelected.cofIndex = circleOfFifthsIndex;
-    updateChordDisplay();
     return MOUSEBOARD_STATE.bassNoteSelected;
 }
 
@@ -426,15 +425,54 @@ class ChordTriggers {
                 const bassTurnedOn = MOUSEBOARD_STATE.chordplayers.bass.on(eKey, triggerSpec.bass, undefined, 1.0, false, scheduledDuration, scheduledTime);
                 const chordTurnedOn = MOUSEBOARD_STATE.chordplayers.chord.on(eKey, triggerSpec.chord, undefined, 0.8, triggerSpec.voicelead, scheduledDuration, scheduledTime); /* lower velocity so we dont clip so horribly*/
                 if (chordTurnedOn) {
-                    MOUSEBOARD_STATE.info_voicing = triggerSpec.name;
-                    MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = MOUSEBOARD_STATE.bassNoteSelected.label;
+                    /* chord info updates as a callback. If this on() call is to
+                     * schedule a future note-On, then we also schedule the
+                     * callback in the Transport. If not (i.e. called via
+                     * keyboard event) then we just call it immediately. The
+                     * reason we have to do the gymnastics with the partial
+                     * applications is because the values in the chorddisplay
+                     * should reflect the MOUSEBOARD_STATE at the time of
+                     * scheduling (not the state after all the scheduling is
+                     * done), and so we should do partial application to "pass
+                     * in" the local scope at this instant where the on() call
+                     * is used for scheduling. */
+
+                    const onFn = (n, l) => {
+                        MOUSEBOARD_STATE.info_voicing = n;
+                        MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = l;
+                    };
+                    /* if this on() call is for scheduling w/ t and duration */                    
+                    if (calledManually) {
+                        const offFn = () => {
+                            MOUSEBOARD_STATE.info_voicing = "";
+                            MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = "";
+                        }
+                        Tone.Transport.scheduleOnce(((n, l) => (() => {onFn(n, l); updateChordDisplay();}))(triggerSpec.name, MOUSEBOARD_STATE.bassNoteSelected.label), scheduledTime);
+                        Tone.Transport.scheduleOnce(() => {offFn(); updateChordDisplay();}, scheduledTime + scheduledDuration);
+                    }
+                    else {
+                        onFn(triggerSpec.name, MOUSEBOARD_STATE.bassNoteSelected.label);
+                    }
                 }
                 
                 if (bassTurnedOn) {
-                    MOUSEBOARD_STATE.info_bassNotePlaying = MOUSEBOARD_STATE.bassNoteSelected.label;
+                    const onFn = (l) => {
+                        MOUSEBOARD_STATE.info_bassNotePlaying = l;
+                    };
+                    if (calledManually) {
+                        const offFn = () => {
+                            MOUSEBOARD_STATE.info_bassNotePlaying = "";
+                        }
+                        Tone.Transport.scheduleOnce(((l) => (() => {onFn(l); updateChordDisplay();}))(MOUSEBOARD_STATE.bassNoteSelected.label), scheduledTime);
+                        Tone.Transport.scheduleOnce(() => {offFn(); updateChordDisplay();}, scheduledTime + scheduledDuration);
+                    }
+                    else {
+                        onFn(MOUSEBOARD_STATE.bassNoteSelected.label);
+                    }
                 }
-                
-                updateChordDisplay();
+                if (!calledManually){
+                    updateChordDisplay();
+                }
             }
             else {
                 if (eKey === "`") {
@@ -507,7 +545,7 @@ const CIRCLE_OF_FIFTHS_12EDO = [
  * but we can reimplement this function later to do exotic microtonal stuff.
  * the call signature should be i -> {"label":str, "cents":int}*/
 function queryCircleOfFifths12EDO(i) {
-    return CIRCLE_OF_FIFTHS_12EDO[i % 12];
+    return CIRCLE_OF_FIFTHS_12EDO[i % 12 + (i < 0 ? 12 : 0)];
 }
 
 let circleOfFifthsQueryFn = queryCircleOfFifths12EDO; /* change this out */

@@ -11,6 +11,8 @@ const COMPOSER_STATE = {
     "howManyBarsPlayed": 0, /* so that we know which Tone.Transport bar/measure is the latest to schedule new bars at */
 }
 
+const SCHEDULING_DELAY_FOR_LAG_PREVENTION = 0.05;
+
 const centDistToCircleOfFifthsDist = c => (5*c/100) % 12 + (c < 0 ? 12 : 0);
 
 const randomlyLengthen = t => t + Math.random() * 0.2;
@@ -33,6 +35,24 @@ function makeBossaHoldingPattern(variation, voicingButton) {
             {"key": "z", "time": "0:0:11", "duration": Tone.Time("16n")-0.1},
             {"key": "a", "time": "0:0:12", "duration": "8n"},
             {"key": voicingButton, "time": "0:0:14", "duration": "16n"},
+        ];
+    }
+    else if (variation === 2) {
+        patternEvents = [
+            {"key": "z", "time": "0:0", "duration": "8n"},
+            {"key": voicingButton, "time": "0:0:2", "duration": "16n"},
+            {"key": "z", "time": "0:0:3", "duration": Tone.Time("16n")-0.1},
+            {"key": "a", "time": "0:0:4", "duration": randomlyLengthen(Tone.Time("16n"))},
+            {"key": voicingButton, "time": "0:0:5", "duration": "16n"},
+            {"key": "a", "time": "0:0:7", "duration": Tone.Time("16n")-0.1},
+            {"key": "z", "time": "0:0:8", "duration": "16n"},
+            {"key": voicingButton, "time": "0:0:9", "duration": randomlyLengthen(Tone.Time("16n"))},
+            {"key": "z", "time": "0:0:11", "duration": Tone.Time("16n")-0.1},
+            {"key": "a", "time": "0:0:12", "duration": "8n"},
+            {"key": voicingButton, "time": "0:0:12", "duration": "8n"},
+            {"bassCOFshift": 5},
+            {"key": voicingButton, "time": "0:0:14", "duration": "16n"},
+            {"bassCOFshift": -5}
         ];
     }
     return {
@@ -64,24 +84,27 @@ function updateAutoComposerDisplay() {
 
 function interpretPatternEvent(event) {
     /* schedule chordtriggers and manipulate MOUSEBOARD_STATE based on our
-     * pattern event data. All events contain field "time" : number | Tone.Time */
+     * pattern event data. */
     if (event.key !== undefined) {
         /* key press event, containing "key" (char representing keyboard key)
-        and "duration" (number or Tone.Time) fields. */
-        ChordTriggers.on(event.key, true, Tone.Time(event.duration), Tone.Transport.seconds + Tone.Time(event.time));
+        and "duration" and "time" (number or Tone.Time) fields. */
+        ChordTriggers.on(event.key, true, 
+            Tone.Time(event.duration), 
+            SCHEDULING_DELAY_FOR_LAG_PREVENTION + Tone.Transport.seconds + Tone.Time(event.time));
     }
     else if (event.bassCOFshift !== undefined) {
         /* bass change event, change MOUSEBOARD_STATE's selected bass. Contains
          bassCOFshift field, which is the offset (in circle of fifths index!!
          not cents!!) that is then interpreted as the amount to shift in cents
-         via the circleOfFifthsQueryFn */
-        const newBassCOFIndex = event.bassCOFshift + MOUSEBOARD_STATE.bassNoteSelectedAsCOFIndex;
+         via the circleOfFifthsQueryFn. The reason the offset is subtracted
+         rather than added is because it's easier to think about moving
+         counterclockwise thru the circle of fifths (resolving by fifths
+         direction) */
+        const newBassCOFIndex = -event.bassCOFshift + MOUSEBOARD_STATE.bassNoteSelected.cofIndex;
         /* we do not rely on the basspads array here! this lets us select cents
          * and pitches independently of what the defined basspads are, only
          * using the circleOfFifthsQueryFn (which is called inside globallySelectNewBass)  */
-        Tone.Transport.scheduleOnce(_ => {
-            globallySelectNewBass(newBassCOFIndex);
-        }, Tone.Transport.seconds + Tone.Time(event.time));
+        globallySelectNewBass(newBassCOFIndex);
     }
 }
 
@@ -93,7 +116,7 @@ function startAutoComposer() {
         let bar = COMPOSER_STATE.barsQueued.pop();
         if (!bar) {
             /* if there is no queued bar, just go into the holding pattern */
-            bar = makeBossaHoldingPattern(1, "f");
+            bar = makeBossaHoldingPattern(((COMPOSER_STATE.howManyBarsPlayed+1) % 4 === 0) ? 2 : 1, "f");
         }
         /* NOTE for future... the time passed into transport callbacks is
          * actually global time, not transport seek position. For that we can
