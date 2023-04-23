@@ -15,6 +15,7 @@ const SCHEDULING_DELAY_FOR_LAG_PREVENTION = 0.05;
 
 const centDistToCircleOfFifthsDist = c => (5*c/100) % 12 + (c < 0 ? 12 : 0);
 
+/* random choice functions for autocomposer */
 const randomlyLengthen = t => t + Math.random() * 0.2;
 
 function makeBossaHoldingPattern(variation, voicingButton) {
@@ -62,6 +63,10 @@ function makeBossaHoldingPattern(variation, voicingButton) {
         key around the COF */
         "events": patternEvents
     }
+}
+
+function queueBossaModulationPatterns(bassCOFshift, variation) {
+
 }
 
 function updateAutoComposerDisplay() {
@@ -128,7 +133,10 @@ function startAutoComposer() {
         COMPOSER_STATE.howManyBarsPlayed++;
         updateAutoComposerDisplay();
     }, "1m", 0);
-    
+    MOUSEBOARD_STATE.basspads.forEach(b => {
+        b.element.classList.toggle("basspad-during-autocompose");
+        b.hoverEventEnabled = false;
+    });
     Tone.Transport.start();
 }
 
@@ -141,10 +149,15 @@ function stopAutoComposer() {
     ChordTriggers.allOff(); /* force turn off any hanging notes */
     updateAutoComposerDisplay();
     updateChordDisplay();
+    MOUSEBOARD_STATE.basspads.forEach(b => {
+        b.element.classList.toggle("basspad-during-autocompose");
+        b.hoverEventEnabled = true;
+    });
 }
 
 function setupAutoComposer() {
     /* add click events to the play/stop button */
+    const cofBg = document.getElementById("circle-of-fifths-bg");
     const togglePlayWithButton = (button) => {
         COMPOSER_STATE.currentlyPlaying = !COMPOSER_STATE.currentlyPlaying;
         if (COMPOSER_STATE.currentlyPlaying) {
@@ -157,6 +170,8 @@ function setupAutoComposer() {
             button.style.fontSize = "1.75rem"; 
             stopAutoComposer();
         }
+        cofBg.classList.toggle("cof-bg-during-autocompose");
+        cofBg.classList.toggle("cof-bg-during-manual");
     }
     const playButton = document.getElementById("autocomposer-play-button");
     playButton.addEventListener("click", _ => togglePlayWithButton(playButton));
@@ -168,6 +183,7 @@ function setupAutoComposer() {
         }
     }
     for (const basspad of MOUSEBOARD_STATE.basspads) {
-        basspad.element.addEventListener("click", _ => targetNewKeyFromBasspad(basspad.circleOfFifthsIndex));
+        basspad.element.addEventListener("click", e => {e.preventDefault(); targetNewKeyFromBasspad(basspad.circleOfFifthsIndex); });
+        basspad.element.addEventListener("touchstart", e => {e.preventDefault(); targetNewKeyFromBasspad(basspad.circleOfFifthsIndex); });
     }
 }

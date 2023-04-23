@@ -1,5 +1,6 @@
 <html>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <head>
     <title>mouseboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,10 +13,7 @@
         }
 
         #start-prompt-screen {
-            display:flex;
-            align-items: center;
-            justify-content: center;
-
+            font-family:'Source Sans Pro', sans-serif;
             background-color: gray;
             color: white;
             text-align: center;
@@ -29,62 +27,106 @@
         }
         
         #circle-of-fifths {
-            background-color: lightgoldenrodyellow;
             position:relative;
-            display:flex;
-            border-radius: 50%;
-            height: 800px;
+            /* display:; */
+            /* height: 800px; */
+            height: 85vh;
             aspect-ratio: 1/1;
-            margin-left:10vw;
-            /* margin-right: 80%; */
-            /* margin-top: 80px;    */
+            margin-left: auto;
+            margin-right: 1.1vw;
+        }
+
+        #circle-of-fifths-bg {
+            border-radius: 50%;
+            position: absolute;
+            display: block;
+            height: 100%;
+            width: 100%;
+            max-height: 100%;
+            transition: background-color 0.2s, border 0.2s;
+            margin-left: -16px;
+            margin-top: -8px;
+            border: 16px solid #0000;
+        }
+
+        .cof-bg-during-manual {
+            background-color: rgb(255, 255, 236);
+            border-color: #0000;
+        }
+        .cof-bg-during-autocompose {
+            animation-name: anim-border-flasher;
+            animation-duration: 3s; /* 80bpm */
+            animation-iteration-count:infinite;
+            animation-timing-function: ease-in-out;
+            animation-direction:alternate;
+            
+            background-color:rgb(255, 240, 238);
+        }
+        
+        @keyframes anim-border-flasher {
+            0% {
+                border-color: rgb(255, 187, 132);
+            }
+            50% {
+                border-color: rgb(255, 230, 160);
+            }
+            100% {
+                border-color:rgb(255, 158, 166);
+            }
         }
         
         .basspad-circle {
-            width:160px;
-            height:160px;
+            width:calc(min(160px, 19vh));
+            height:calc(min(160px, 19vh));
             background-color:rgb(222, 237, 255);
             border-radius: 50%;
         }
         .basspad-circle:hover {
+            width:calc(min(170px, 20vh));
+            height:calc(min(170px, 20vh));
             background-color: rgb(244, 255, 253);
         }
         .basspad-tonnetz {
-            width:160px;
-            height:160px;
+            width:calc(min(160px, 19vh));
+            height:calc(min(160px, 19vh));
             background-color:#ffebb0;
             border-radius: 10%;
         }
         .basspad-tonnetz:hover {
+            width:calc(min(170px, 20vh));
+            height:calc(min(170px, 20vh));
             background-color: #fffada;
         }
         .basspad-chromatic-whitekey {
-            height: 320px;
-            width: 110px;
+            width:calc(min(120px, 12vh));
+            height:calc(min(320px, 40vh));
             background-color:ivory;
             border-radius: 10px;
         }
-        .basspad-chromatic:hover {
+        .basspad-chromatic-whitekey:hover {
+            width:calc(min(130px, 13vh));
+            height:calc(min(330px, 41vh));
             background-color: white;
         }
         .basspad-chromatic-blackkey {
-            height: 240px;
-            width: 60px;
+            width:calc(min(60px, 7vh));
+            height:calc(min(240px, 32vh));
             background-color:lightblue;
             border-radius: 10px;
             z-index: 3;
         }
         .basspad-chromatic-blackkey:hover {
+            width:calc(min(65px, 8vh));
+            height:calc(min(250px, 32vh));
             background-color: lightcyan;
         }
 
         .basspad {
-            font-size: 20pt;
+            font-size: calc(min(20pt, 4vh));
             float:left;
             position:absolute;
             user-select: none;
             border: 1px solid black;
-            
             
             text-align: center;
             display:flex;
@@ -92,27 +134,38 @@
             align-items: center;
             justify-content: center;
             transform: translate(-50%, 0);
+            -webkit-transform: translate(-50%, 0);
             box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
-            
-            transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.3s, box-shadow 0.2s, -webkit-box-shadow 0.2s, -moz-box-shadow 0.2s, transform 0.2s, width 0.2s, height 0.2s;
+        }
+        .basspad-long-transitions {
+            transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.3s, box-shadow 0.2s, -webkit-box-shadow 0.2s, -moz-box-shadow 0.2s, transform 0.2s, -webkit-transform 0.2s, width 0.2s, height 0.2s;
+        }
+        .basspad-short-transitions {
+            transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.15s, box-shadow 0.15s, width 0.2s, height 0.2s;
         }
         .basspad:hover {
-            transform: translate(-50%) scale(1.0625);
             box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
         }
+        .basspad-during-autocompose:hover {
+            background-color:rgb(190, 242, 255);
+        }
+        .basspad-during-autocompose:active {
+            transform: translate(-50%) scale(0.95);
+            -webkit-transform: translate(-50%) scale(0.95);
+        }
 
         .button-toggle {
             font-family: 'Source Sans Pro', sans-serif;
-            font-size: 12pt;
+            font-size: calc(min(12pt, 3vw));
             display:inline-block;
             border-radius: 10px;
             padding-left: 16px;
             padding-right: 8px;
-            height:32px;
+            min-height: 32px;
             width: 100%;
             margin-left: auto;
             margin-right: auto;
@@ -139,21 +192,26 @@
 
         #chord-symbol-display {
             color:lightgray;
-            font-size:100pt;
-            height: 120pt;
+            font-size: calc(min(100pt, 13vw));
+            min-height: calc(min(122pt, 30vh));
+            width: 99%;
             vertical-align: middle;
             text-align: center;
             margin: auto;
-            /* padding-bottom: 20pt; */
+            overflow: hidden;
             border-radius: 10px;
             border: 2px dashed cornflowerblue;
-            line-height:1.1em;
+            line-height:1.05em;
         }
 
         #info-panel {
             width: 32%;
+            padding-left: 4px;
+            padding-right: 4px;
             margin-left: auto;
             margin-right: auto;
+            max-height: 85vh;
+            overflow-y: auto;
         }
 
         ul#list-chord-keyboard-mapping {
@@ -172,6 +230,7 @@
             margin-bottom: 1em;
         }
         .collapsible-content {
+            font-size: calc(min(12pt, 4vh));
             background-color:aliceblue; 
             width: 96%; 
             border-radius: 10px;
@@ -253,7 +312,7 @@
 
 
 <div class="container">
-    <div id="circle-of-fifths"></div>
+    <div id="circle-of-fifths"><div id="circle-of-fifths-bg" class="cof-bg-during-manual"></div></div>
 
     <div id="info-panel">
         <div id="chord-symbol-display"></div>
@@ -297,14 +356,14 @@
         <div class="collapsible-container">
             <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Bossa Nova Autocomposer <i>(highly experimental!)</i></button>
             <div class="collapsible-content autocomposer-ui">
-                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child fa">▶</button>
+                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child fa">&#xf04b;</button>
                 <div id="autocomposer-info-display" class="autocomposer-child">Press play to start</div>
             </div>
         </div>
         
     </div>
 </div>
-<div id="start-prompt-screen"><h2>click to start</h2></div>
+<button id="start-prompt-screen"><h2>click to start</h2></button>
 
 <script>
     /* collapsible info divs */

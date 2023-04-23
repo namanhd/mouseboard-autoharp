@@ -18,7 +18,9 @@ const MOUSEBOARD_STATE = {
     "info_bassNoteImpliedByVoicing": "",
     "info_voicing": "",
     /* layout config */
-    "basspadLayout": "circle"
+    "basspadLayout": "circle",
+    /* this is just for disabling transform transitions on touch, bc theyre laggy */
+    "isTouchscreen": false,
 };
 
 function centsToRatio(c) {
@@ -44,11 +46,19 @@ function updateChordDisplay() {
     impliedBassElem.append(MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing);
     playingBassElem.append(MOUSEBOARD_STATE.info_bassNotePlaying);
     voicingElem.append(MOUSEBOARD_STATE.info_voicing);
+    let longVoicing = false;
+    if (MOUSEBOARD_STATE.info_voicing.length > 3) {
+        voicingElem.style.fontSize = "calc(min(80pt, 7vw))";
+        longVoicing = true;
+    }
 
     if (MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing === MOUSEBOARD_STATE.info_bassNotePlaying) {
         chordSymbolDisplay.append(playingBassElem, voicingElem);
     }
     else {
+        if (longVoicing) {
+            playingBassElem.style.fontSize = "calc(min(80pt, 7vw))";
+        }
         chordSymbolDisplay.append(impliedBassElem, voicingElem, (MOUSEBOARD_STATE.info_bassNotePlaying === "" ? "" : "/"), playingBassElem);
     }
     
@@ -347,10 +357,16 @@ class Basspad {
         this.label = label;
         this.cents = cents;
         this.element = element;  /* the html element for this basspad*/
-        this.element.addEventListener("mouseenter", (_=>this.hover(this)));
-        this.element.addEventListener("touchstart", (_=>this.hover(this)));
+        this.element.addEventListener("mouseenter", (e => {e.preventDefault(); this.hover(this)}));
+        this.element.addEventListener("touchstart", (e => {e.preventDefault(); this.hover(this)}));
+        /* while autocomposer is playing, hovering should not do anything, only
+        click and touchstart should */
+        this.hoverEventEnabled = true; 
     }
     hover(self) {
+        if (!self.hoverEventEnabled) {
+            return;
+        }
         /* activates on hover... changes the current bass note of the
         chordplayers to the pad's cents */
         const {label, cents, _} = globallySelectNewBass(self.circleOfFifthsIndex);
@@ -620,7 +636,7 @@ function layoutBasspads(style=undefined) {
             basspadElem.classList.remove("basspad-circle");
             basspadElem.classList.remove("basspad-tonnetz");
             basspadElem.classList.add("basspad-chromatic-blackkey");
-            basspadElem.style.top = topOffset + "%";
+            basspadElem.style.top = topOffset - 3 + "%";
             basspadElem.style.left = bSepPercentage + leftOffset + (blackKeysOffsets[bCol]-1) * bSepPercentage + "%";
         }
         
@@ -629,13 +645,12 @@ function layoutBasspads(style=undefined) {
 
 function setupBasspads() {
     const cof = document.getElementById("circle-of-fifths");
-    cof.innerText = ""; /* clear children */
     const n_basspads = 12;
     const basspads = Array(n_basspads);
     
     for (let i = 0;  i < n_basspads; i++) {
         const basspadElem = document.createElement("div");
-        basspadElem.classList = "basspad";
+        basspadElem.classList.add("basspad", "basspad-long-transitions");
         
         const basspadSpec = circleOfFifthsQueryFn(i);
         
@@ -669,6 +684,15 @@ function setup(callbacksAfterwards) {
         setupBasspads();
         ChordTriggers.init(); /* start listening for keyboard triggers */
         callbacksAfterwards();
+        if (MOUSEBOARD_STATE.isTouchscreen) {
+            MOUSEBOARD_STATE.basspads.forEach(b => {
+                b.element.classList.remove("basspad-long-transitions");
+                b.element.classList.add("basspad-short-transitions");
+            })
+        }
+    })
+    start_prompt_screen?.addEventListener("touchstart", _ => {
+        MOUSEBOARD_STATE.isTouchscreen = true;
     })
 
     /* show chord voicing keymap in the instructions  */
