@@ -210,8 +210,9 @@
             padding-right: 4px;
             margin-left: auto;
             margin-right: auto;
-            max-height: 85vh;
+            max-height: 89vh;
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
         ul#list-chord-keyboard-mapping {
@@ -298,6 +299,14 @@
             height: 32px;
             width: 100%;
             vertical-align: middle;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        .autocomposer-info-display-text {
+            max-width: 99%;
+            white-space: nowrap;
+            line-height: 1.2em;
+            overflow-x: visible;
         }
     </style>
     <!-- tone.js import -->
@@ -376,7 +385,7 @@
                 caretInButtonClassList.toggle("fa-caret-right");
                 caretInButtonClassList.toggle("fa-caret-down");
             }
-            
+
         })
     }
     /* audio stuff.. first setup main mouseboard interface and audio, then

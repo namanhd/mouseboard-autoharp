@@ -7,21 +7,21 @@ const N_VOICES_PER_INSTRUMENT = 4;
 const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 6;
 
 /* "application state", things that can change over the course of execution */
-const MOUSEBOARD_STATE = {
-    "basspads":  undefined,
-    "chordplayers": undefined,
-    "bassNoteSelected": {"label": "C", "cents": 0, "cofIndex": 1},
+const MOUSEBOARD_STATE = 
+  { "basspads":  undefined
+  , "chordplayers": undefined
+  , "bassNoteSelected": {"label": "C", "cents": 0, "circleOfFifthsIndex": 1}
     /* ^ this isn't shown in chorddisplay but is used in setting the other ones
      * correctly. This will also be edited live by the autocomposer to play its
      * chords. */
-    "info_bassNotePlaying": "",
-    "info_bassNoteImpliedByVoicing": "",
-    "info_voicing": "",
+  , "info_bassNotePlaying": ""
+  , "info_bassNoteImpliedByVoicing": ""
+  , "info_voicing": ""
     /* layout config */
-    "basspadLayout": "circle",
+  , "basspadLayout": "circle"
     /* this is just for disabling transform transitions on touch, bc theyre laggy */
-    "isTouchscreen": false,
-};
+  , "isTouchscreen": false
+  };
 
 function centsToRatio(c) {
     return Math.pow(2, (c / 1200));
@@ -345,7 +345,7 @@ function globallySelectNewBass(circleOfFifthsIndex) {
     
     MOUSEBOARD_STATE.bassNoteSelected.label = label;
     MOUSEBOARD_STATE.bassNoteSelected.cents = cents; 
-    MOUSEBOARD_STATE.bassNoteSelected.cofIndex = circleOfFifthsIndex;
+    MOUSEBOARD_STATE.bassNoteSelected.circleOfFifthsIndex = normalizeCircleOfFifthsIndex(circleOfFifthsIndex);
     return MOUSEBOARD_STATE.bassNoteSelected;
 }
 
@@ -397,6 +397,7 @@ const KEYBOARD_TO_VOICING_MAP =
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}
   , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": true, "hidden": false}
+  , "h": {"name": "m7♭5", "bass": [], "chord": [0, 600, 1000, 300+1200], "voicelead": true, "hidden": false}
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
@@ -542,30 +543,36 @@ class ChordTriggers {
     }
 }
 
-const CIRCLE_OF_FIFTHS_12EDO = [
-    {"label": "F", "cents": 500},
-    {"label": "C", "cents": 0},
-    {"label": "G", "cents": 700},
-    {"label": "D", "cents": 200},
-    {"label": "A", "cents": 900},
-    {"label": "E", "cents": 400},
-    {"label": "B", "cents": 1100},
-    {"label": "F♯", "cents": 600},
-    {"label": "C♯", "cents": 100},
-    {"label": "A♭", "cents": 800},
-    {"label": "E♭", "cents": 300},
-    {"label": "B♭", "cents": 1000}
-];
+const CIRCLE_OF_FIFTHS_12EDO = 
+  [ {"label": "F", "cents": 500}
+  , {"label": "C", "cents": 0}
+  , {"label": "G", "cents": 700}
+  , {"label": "D", "cents": 200}
+  , {"label": "A", "cents": 900}
+  , {"label": "E", "cents": 400}
+  , {"label": "B", "cents": 1100}
+  , {"label": "F♯", "cents": 600}
+  , {"label": "C♯", "cents": 100}
+  , {"label": "A♭", "cents": 800}
+  , {"label": "E♭", "cents": 300}
+  , {"label": "B♭", "cents": 1000}
+  ];
 
 /* circle-of-fifths function... by default cycles through the 12-note circle,
- * but we can reimplement this function later to do exotic microtonal stuff.
- * the call signature should be i -> {"label":str, "cents":int}*/
-function queryCircleOfFifths12EDO(i) {
-    return CIRCLE_OF_FIFTHS_12EDO[i % 12 + (i < 0 ? 12 : 0)];
+ * but we can reimplement this function later to do exotic microtonal stuff. the
+ * call signature should be (i, readonly : bool = false) -> {"label":str,
+ * "cents":int}. These functions can be queried read-only (no state should be
+ * modified) or not, which is how we could dynamically modify the circle of
+ * fifths on each call to circleOfFifthsQueryFn. */
+function queryCircleOfFifths12EDO(i, readonly=false) {
+    return CIRCLE_OF_FIFTHS_12EDO[((i % 12) + 12) % 12];
+}
+function normalizeCircleOfFifthsIndex12EDO(i) {
+    return ((i % 12) + 12) % 12;
 }
 
 let circleOfFifthsQueryFn = queryCircleOfFifths12EDO; /* change this out */
-
+let normalizeCircleOfFifthsIndex = normalizeCircleOfFifthsIndex12EDO; /* changeable too */
 
 /* lay out the basspads in either a circle of fifths or a tonnetz grid */
 function layoutBasspads(style=undefined) {
@@ -652,7 +659,7 @@ function setupBasspads() {
         const basspadElem = document.createElement("div");
         basspadElem.classList.add("basspad", "basspad-long-transitions");
         
-        const basspadSpec = circleOfFifthsQueryFn(i);
+        const basspadSpec = circleOfFifthsQueryFn(i, true);
         
 
         basspadElem.append((e => {e.textContent = (basspadSpec.label); return e;})(document.createElement("b")), document.createElement("br"), basspadSpec.cents);
