@@ -64,6 +64,7 @@ function makeBossaHoldingPattern(variation, voicingButton) {
           , {"key": __K.b, "time": "0:0:11", "duration": staccato16n}
           , {"key": __K.lb, "time": "0:0:12", "duration": "8n"}
           , {"key": voicingButton, "time": "0:0:14", "duration": "16n"}
+          , chooseFrom({}, {"key": __K.lb, "time": "0:0:15", "duration": staccato16n})
           ];
     }
     else if (variation === 2) {
@@ -93,10 +94,10 @@ function makeBossaHoldingPattern(variation, voicingButton) {
     }
 }
 
-function queueBossaModulationPatterns(bassCOFShift, variation) {
+function makeBossaModulationPatterns(bassCOFShift, variation) {
     bassCOFShift = normalizeCircleOfFifthsIndex(bassCOFShift);
     if (bassCOFShift === 0) {
-        COMPOSER_STATE.barsQueued.push(makeBossaHoldingPattern(1, COMPOSER_STATE.preferredHoldPatternVoicing));
+        return makeBossaHoldingPattern(1, COMPOSER_STATE.preferredHoldPatternVoicing);
     }
     if (bassCOFShift === 1) {
         const nVariations = 3;
@@ -128,7 +129,7 @@ function queueBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             };
-            COMPOSER_STATE.barsQueued.push(bar);
+            return bar;
         }
         else if (variationChoice === 2) {
             /* tritone sub */
@@ -155,7 +156,7 @@ function queueBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             }
-            COMPOSER_STATE.barsQueued.push(bar);
+            return bar;
         }
         else if (variationChoice === 3) {
             const patternEvents = 
@@ -179,7 +180,7 @@ function queueBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             }
-            COMPOSER_STATE.barsQueued.push(bar);
+            return bar;
         }
     } /* end bassCOFShift === 1*/
     else if (bassCOFShift === 2) {
@@ -213,7 +214,7 @@ function queueBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
             };
-            COMPOSER_STATE.barsQueued.push(bar);
+            return bar;
         }
         else if (variationChoice === 2) {
 
@@ -244,10 +245,14 @@ function updateAutoComposerDisplay() {
         miscInfoElem.append("Number of bars played: " + COMPOSER_STATE.howManyBarsPlayed);
     }
     else {
-        currentBarInfoElem.innerText = "Press play to start";
+        currentBarInfoElem.innerText = "Press play to start Autocomposer";
     }
     autoComposerInfoDisplay.append(currentBarInfoElem, miscInfoElem);
 }
+
+// function updateAutoComposerQueueDisplay() {
+//     const autoComposerInfoDisplay
+// }
 
 function interpretPatternEvent(event) {
     /* schedule chordtriggers and manipulate MOUSEBOARD_STATE based on our
@@ -312,7 +317,7 @@ function startAutoComposer() {
         b.element.classList.toggle("basspad-during-autocompose");
         b.hoverEventEnabled = false;
     });
-    document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-info-display-playhead-animated");
+    document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-display-playhead-animated");
     Tone.Transport.start();
 }
 
@@ -329,7 +334,7 @@ function stopAutoComposer() {
         b.element.classList.toggle("basspad-during-autocompose");
         b.hoverEventEnabled = true;
     });
-    document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-info-display-playhead-animated");
+    document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-display-playhead-animated");
 }
 
 function setupAutoComposer() {
@@ -364,9 +369,9 @@ function setupAutoComposer() {
             const last = COMPOSER_STATE.lastKeyCenterCOFIndexQueued;
             /* update to the last queued key center as a circle-of-fifths index */
             COMPOSER_STATE.lastKeyCenterCOFIndexQueued = circleOfFifthsIndex;
-            queueBossaModulationPatterns(
+            COMPOSER_STATE.barsQueued.push(makeBossaModulationPatterns(
                 (last === undefined ? MOUSEBOARD_STATE.bassNoteSelected.circleOfFifthsIndex : last) - circleOfFifthsIndex
-                , Math.floor(12 * Math.random()));
+                , Math.floor(12 * Math.random())));
         }
     }
     for (const basspad of MOUSEBOARD_STATE.basspads) {
