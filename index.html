@@ -25,15 +25,13 @@
             width: 100vw;
             margin: auto;
         }
-        
+
         #circle-of-fifths {
             position:relative;
-            /* display:; */
-            /* height: 800px; */
-            height: 85vh;
+            height: calc(min(85vh, 85vw));
             aspect-ratio: 1/1;
             margin-left: auto;
-            margin-right: 1.1vw;
+            margin-right: auto;
         }
 
         #circle-of-fifths-bg {
@@ -154,8 +152,8 @@
             background-color:rgb(190, 242, 255);
         }
         .basspad-during-autocompose:active {
-            transform: translate(-50%) scale(0.95);
-            -webkit-transform: translate(-50%) scale(0.95);
+            transform: translate(-50%) scale(0.925);
+            -webkit-transform: translate(-50%) scale(0.925);
         }
 
         .button-toggle {
@@ -188,6 +186,10 @@
         }
         .container {
             display:flex;
+            flex-wrap:wrap;
+            row-gap: 32px;
+            margin-left: 6vw;
+            margin-right: 6vw;
         }
 
         #chord-symbol-display {
@@ -205,12 +207,12 @@
         }
 
         #info-panel {
-            width: 32%;
-            padding-left: 4px;
-            padding-right: 4px;
+            width: calc(max(60vh, 33vw));
+            padding-left: 6px;
+            padding-right: 6px;
             margin-left: auto;
             margin-right: auto;
-            max-height: 89vh;
+            max-height: 85vh;
             overflow-y: auto;
             overflow-x: hidden;
         }
@@ -240,7 +242,6 @@
             padding-top: 0;
             padding-bottom: 0;
             overflow: hidden;
-            display: flex;
             max-height: 0;
             transition: max-height 0.2s, padding-top 0.2s, padding-bottom 0.2s;
         }
@@ -249,15 +250,17 @@
             padding-top: 10px;
             padding-bottom: 10px;
             max-height: 100%;
+            overflow-y:auto
         }
         .collapsible-button-caret {
             transform:translateX(-10px);
         }
-
+        .autocomposer-ui {
+            display: flex;
+        }
         .autocomposer-child {
             margin: 6px;
         }
-        
         .autocomposer-button {
             border-radius: 12px;
             border: 0px solid black;
@@ -289,7 +292,7 @@
         }
 
         #autocomposer-info-display {
-            border: 1px dashed black;
+            /* border: 1px dashed black; */
             border-radius: 12px;
             display: inline-block;
             background-color:darkslategray;
@@ -301,6 +304,22 @@
             vertical-align: middle;
             overflow-x: auto;
             overflow-y: hidden;
+        }
+        .autocomposer-info-display-playhead-animated {
+            animation-name: anim-playhead;
+            animation-duration: 3s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            background: linear-gradient(90deg, darkslategray 0%, darkslategray 48%, rgb(190, 242, 255) 50%, darkslategray 50%);
+            background-size: 200% 200%;
+        }
+        @keyframes anim-playhead {
+            from {
+                background-position: 100%
+            }
+            to {
+                background-position: 0%
+            }
         }
         .autocomposer-info-display-text {
             max-width: 99%;
@@ -325,8 +344,9 @@
 
     <div id="info-panel">
         <div id="chord-symbol-display"></div>
+        <div class="collapsible-container"><button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle, Tonnetz, and Piano layouts 🔁</button></div>
         <div class="collapsible-container">
-            <button class="button-toggle collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>Basic instructions</button>
+            <button class="button-toggle collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>How to play 🌱</button>
             <div class="collapsible-content collapsible-content-active">
                 <div>
                     <p>
@@ -348,9 +368,8 @@
                 </div>
             </div>
         </div>
-        <button class="button-toggle" onclick="layoutBasspads()">Toggle between Circle, Tonnetz, and Piano layouts</button>
         <div class="collapsible-container">
-            <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Quick playing tips</button>
+            <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>What to play 🎼</button>
             <div class="collapsible-content">
                 <ul>
                     <li><b>Two-five-one: </b>  Hover over three consecutive pads (in counterclockwise order) and press <b>z+s, z+d, z+f</b> respectively.
@@ -363,10 +382,17 @@
             </div>
         </div>
         <div class="collapsible-container">
-            <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Bossa Nova Autocomposer <i>(highly experimental!)</i></button>
-            <div class="collapsible-content autocomposer-ui">
-                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child fa">&#xf04b;</button>
-                <div id="autocomposer-info-display" class="autocomposer-child">Press play to start</div>
+            <button class="button-toggle collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Bossa Nova Autocomposer 🤖 <i>(highly experimental!)</i></button>
+            <div class="collapsible-content">
+                <div class="autocomposer-ui">
+                    <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child fa">&#xf04b;</button>
+                    <div id="autocomposer-info-display" class="autocomposer-child">Press play to start</div>
+                </div>
+                <p>
+                    <p><strong>Let the Autocomposer generate for you an infinite stream of bossa nova! </strong></p>
+                    While the Autocomposer plays, click/tap on a bass note pad to queue up a new key center.
+                    The Autocomposer will write bars of music to smoothly move to each of your requested key centers in the queue.
+                </p>
             </div>
         </div>
         
