@@ -41,7 +41,7 @@
             height: 100%;
             width: 100%;
             max-height: 100%;
-            transition: background-color 0.2s, border 0.2s;
+            transition: background-color 0.2s, border-color 0.2s;
             margin-left: -16px;
             margin-top: -8px;
             border: 16px solid #0000;
@@ -91,6 +91,7 @@
             border-radius: 10%;
         }
         .basspad-tonnetz:hover {
+            z-index: 4;
             width:calc(min(170px, 20vh, 14vw));
             height:calc(min(170px, 20vh, 14vw));
             background-color: #fffada;
@@ -102,6 +103,7 @@
             border-radius: 10px;
         }
         .basspad-chromatic-whitekey:hover {
+            z-index: 3;
             width:calc(min(130px, 13vh, 9vw));
             height:calc(min(330px, 41vh, 32vw));
             background-color: white;
@@ -111,9 +113,10 @@
             height:calc(min(240px, 32vh, 25vw));
             background-color:lightblue;
             border-radius: 10px;
-            z-index: 3;
+            z-index: 4;
         }
         .basspad-chromatic-blackkey:hover {
+            z-index: 6;
             width:calc(min(65px, 8vh, 6vw));
             height:calc(min(250px, 33vh, 26vw));
             background-color: lightcyan;
@@ -313,12 +316,13 @@
             height: 32px;
             width: 100%;
             vertical-align: middle;
+            white-space: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
         }
         .autocomposer-display-playhead-animated {
             animation-name: anim-playhead;
-            animation-duration: 3s;
+            animation-duration: 3s; /* 80bpm */
             animation-timing-function: linear;
             animation-iteration-count: infinite;
             background: linear-gradient(90deg, darkslategray 0%, darkslategray 48%, rgb(190, 242, 255) 50%, darkslategray 50%);
@@ -338,6 +342,39 @@
             line-height: 1.2em;
             overflow-x: visible;
         }
+        .autocomposer-queue-item {
+            font-size: 0.8rem;
+            text-align: center;
+            display: inline-block;
+            height: 1.75rem;
+            background-color: white;
+            border: 2px solid cornflowerblue;
+            border-radius: 5px;
+            color:black;
+            font-weight: 700;
+            margin-right: 2px;
+            padding: 2px;
+            line-height: 1.1em;
+            animation: anim-appear;
+            animation-timing-function: ease-in;
+            animation-duration: 0.08s;
+            animation-iteration-count: 1;
+        }
+        @keyframes anim-appear {
+            from {transform: scale(0.8);}
+            to {transform: scale(1.0);}
+        }
+        .autocomposer-display-flashing-animated {
+            animation: anim-queue-display-flash;
+            animation-timing-function: ease-out;
+            animation-duration: 3s; /* 80bpm, change this if bpm is changeable */
+            animation-iteration-count: infinite;
+        }
+        @keyframes anim-queue-display-flash {
+            0% {background-color: rgb(190, 242, 255);}
+            33%, 100% {background-color: darkslategrey;}
+            
+        }
     </style>
     <!-- tone.js import -->
     <script src="https://tonejs.github.io/build/Tone.js"></script>
@@ -347,7 +384,7 @@
 
 <body>
 
-<h2 style="display:inline">mouseboard</h2>, a mouse-and-keyboard autoharp <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a>
+<h2 style="display:inline">mouseboard</h2>, a mouse-and-keyboard (and touch!) autoharp <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a>
 
 
 <div class="container">
@@ -358,7 +395,7 @@
         <div class="collapsible-container">
             <div class="autocomposer-ui-row">
                 <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child button-shadow fa">&#xf04b;</button>
-                <div id="autocomposer-info-display" class="autocomposer-display autocomposer-child">Press play to start Autocomposer</div>
+                <div id="autocomposer-info-display" class="autocomposer-display autocomposer-child">Press play to start the Bossa Nova Autocomposer</div>
             </div>
             <div class="autocomposer-ui-row">
                 <div id="autocomposer-queue-display" class="autocomposer-display autocomposer-child"></div>

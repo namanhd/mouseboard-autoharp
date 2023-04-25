@@ -64,7 +64,7 @@ function updateChordDisplay() {
     
     playingBassElem.style.color = MOUSEBOARD_STATE.info_bassNotePlaying === "" ? "lightgray" : "mediumslateblue";
     voicingElem.style.color = MOUSEBOARD_STATE.info_voicing === "" ? "lightgray" : "mediumslateblue";
-    impliedBassElem.style.color = MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing === "" ? "lightgray": "lightblue";
+    impliedBassElem.style.color = "lightgray";
 }
 
 
@@ -151,7 +151,7 @@ class ToneInstrument {
 class ElecPiano extends ToneInstrument {
     constructor() {
         super();
-        this.volumeNode = new Tone.Volume(-4).toDestination();
+        this.volumeNode = new Tone.Volume(-4.5).toDestination();
         this.synth = new Tone.FMSynth({
             "harmonicity":3,
             "modulationIndex": 14,
@@ -402,7 +402,7 @@ const KEYBOARD_TO_VOICING_MAP =
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
   , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
-  , "t": {"name": "alt", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false}
+  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false} /* alt */
   , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
   }
 

@@ -30,28 +30,42 @@ const COMPOSER_STATE =
   /* ^^ same format as lastKeyCenterCOFIndexQueued; the key center that the
    * current playing bar will arrive at when it ends  */
   , "barsQueued": [] 
-  , "preferredHoldPatternVoicing": __K.M9 /* we may prefer M7 instead of M9 for instance */
   /* ^^ bars of music queued up. see makeBossaHoldingPattern for generating one bar */
+  /* composition state preferences */
+  , "preferredHoldPatternVoicing": __K.M9 /* we may prefer M7 instead of M9 for instance */
+  , "cooldowns": 
+      { "bouncyTritoneSubTwoFiveOne": 0
+      , "alternateHoldPattern": 1
+      } /* cooldowns so that we don't do this stuff too often */
     // melodyplayer: todo... meowsynth player that plays melody on top of the chord progy.
   , "currentlyPlayingBarName": ""
   , "howManyBarsPlayed": 0 
-  /* ^^ so that we know which Tone.Transport bar/measure is the latest to
-   * schedule new bars at */
   };
 
 const SCHEDULING_DELAY_FOR_LAG_PREVENTION = 0.08;
 
-/* random choice functions for autocomposer */
+/* random choice and shorthand functions for autocomposer */
 const randomlyLengthen = t => t + Math.random() * 0.2;
 const staccato16n = Tone.Time("16n")-0.08;
+const staccato8n = Tone.Time("8n")-0.1;
 const chooseFrom = (...xs) => xs[Math.floor(Math.random() * xs.length)];
 
-function makeBossaHoldingPattern(variation, voicingButton) {
+function makeBossaHoldingPattern(voicingButton) {
     /* duration is bars:quarternotes:sixteenthnotes*/
     /* return one bar/measure of inputs */
-    const patternName = "Hold (variant " + variation + ")";
+    let variation;
+    if (COMPOSER_STATE.cooldowns.alternateHoldPattern > 0) {
+        variation = 0;
+        COMPOSER_STATE.cooldowns.alternateHoldPattern--;
+    }
+    else {
+        variation = 1;  /* use the alt hold pattern and reset the cooldown */
+        COMPOSER_STATE.cooldowns.alternateHoldPattern = 2;
+    }
+    const patternName = "Hold";
+    const patternVariantName = "variant " + (variation+1);
     let patternEvents;
-    if (variation === 1)  {
+    if (variation === 0)  {
         patternEvents = 
           [ {"key": __K.b, "time": "0:0", "duration": "8n"}
           , {"key": voicingButton, "time": "0:0:2", "duration": "16n"}
@@ -67,7 +81,7 @@ function makeBossaHoldingPattern(variation, voicingButton) {
           , chooseFrom({}, {"key": __K.lb, "time": "0:0:15", "duration": staccato16n})
           ];
     }
-    else if (variation === 2) {
+    else if (variation === 1) {
         patternEvents = 
           [ {"key": __K.b, "time": "0:0", "duration": "8n"}
           , {"key": voicingButton, "time": "0:0:2", "duration": "16n"}
@@ -87,6 +101,7 @@ function makeBossaHoldingPattern(variation, voicingButton) {
     }
     return {
         "name": patternName,
+        "variantName": patternVariantName,
         "netCircleOfFifthsRotation": 0, 
         /* ^^ counterclockwise. how much this bar's progression progresses the
         key around the COF */
@@ -97,12 +112,12 @@ function makeBossaHoldingPattern(variation, voicingButton) {
 function makeBossaModulationPatterns(bassCOFShift, variation) {
     bassCOFShift = normalizeCircleOfFifthsIndex(bassCOFShift);
     if (bassCOFShift === 0) {
-        return makeBossaHoldingPattern(1, COMPOSER_STATE.preferredHoldPatternVoicing);
+        return [makeBossaHoldingPattern(COMPOSER_STATE.preferredHoldPatternVoicing)];
     }
     if (bassCOFShift === 1) {
         const nVariations = 3;
-        const variationChoice = (variation % nVariations) + 1;
-        if (variationChoice === 1) {
+        const variationChoice = (variation % nVariations);
+        if (variationChoice === 0) {
             /* simple dominant */
             const domVoicing = chooseFrom(__K.d9, __K.d7, __K.d13);
             const patternEvents = 
@@ -122,16 +137,16 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 1, "preferHoldVoicing": (domVoicing === __K.d7 ? __K.M7 : __K.M9)}
               ];
             const bar = {
-                "name": "V-I (" + (domVoicing === __K.d9 ? "dom9" : 
-                                  (domVoicing === __K.d7 ? "dom7" : 
-                                  (domVoicing === __K.d13 ? "dom13" : "")))
-                                + ")",
+                "name": "V-I",
+                "variantName":  (domVoicing === __K.d9 ? "dom9" : 
+                                (domVoicing === __K.d7 ? "dom7" : 
+                                (domVoicing === __K.d13 ? "dom13" : ""))),
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             };
-            return bar;
+            return [bar];
         }
-        else if (variationChoice === 2) {
+        else if (variationChoice === 1) {
             /* tritone sub */
             const tritoneSubVoicing = chooseFrom(__K.m7b5, __K.d9);
             const patternEvents = 
@@ -152,13 +167,14 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 7, "preferHoldVoicing": __K.M9}
               ];
             const bar = {
-                "name": "V-I (tritone sub)",
+                "name": "V-I",
+                "variantName": "tritone sub",
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             }
-            return bar;
+            return [bar];
         }
-        else if (variationChoice === 3) {
+        else if (variationChoice === 2) {
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": __K.M9, "time": "0:0:2", "duration": "16n"}
@@ -176,22 +192,28 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 1, "preferHoldVoicing": __K.M9}
               ];
             const bar = {
-                "name": "V-I (+alt)",
+                "name": "V-I",
+                "variantName": "+alt",
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             }
-            return bar;
+            return [bar];
         }
     } /* end bassCOFShift === 1*/
     else if (bassCOFShift === 2) {
-        const nVariations = 1;
-        const variationChoice = (variation % nVariations) + 1;
-        if (variationChoice === 1) {
+        const nVariations = 2;
+        const variationChoice = (variation % nVariations);
+        
+        if (variationChoice === 0) {
+            if (COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne > 0) {
+                /* tick down the cooldown for variation 1 */
+                COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne--;
+            }
             /* ii-V-I */
-            const subdomVoicing = chooseFrom(__K.m9, __K.m7, __K.m9);
-            const domVoicing0 = chooseFrom(subdomVoicing === __K.m9 ? __K.d9 : __K.d7, __K.alt, __K.d7b9); /* m7 to 7, m9 to 9 */
-            const domVoicing1 = chooseFrom(__K.alt, domVoicing0, __K.d7s5);
-            const domVoicing2 = domVoicing1 === __K.d7s5 ? chooseFrom(__K.d7s5, __K.d7b9) : (domVoicing1 === __K.alt ? __K.d7b9 : domVoicing1);
+            const subdomVoicing = chooseFrom(__K.m9, __K.m7, __K.m9,  __K.m7b5);
+            const domVoicing0 = subdomVoicing === __K.m7b5 ? __K.d7b9 : chooseFrom(subdomVoicing === __K.m9 ? __K.d9 : __K.d7, __K.alt, __K.d7b9); /* m7 to 7, m9 to 9 */
+            const domVoicing1 = chooseFrom(__K.alt, domVoicing0, (domVoicing0 === __K.d7b9 ? domVoicing0 : __K.d7s5));
+            const domVoicing2 = (domVoicing1 === __K.alt ? __K.d7b9 : (domVoicing1 === __K.d7b9 ? chooseFrom(__K.aug, domVoicing1) : domVoicing1));
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": subdomVoicing, "time": "0:0:2", "duration": "16n"}
@@ -206,20 +228,54 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"key": __K.b, "time": "0:0:12", "duration": "8n"}
               , {"key": domVoicing1, "time": "0:0:12", "duration": "8n"}
               , {"key": domVoicing2, "time": "0:0:14", "duration": "16n"}
-              , {"key": __K.b, "time": "0:0:15", "duration": staccato16n}
-              , {"bassCOFShift": 1, "preferHoldVoicing": (domVoicing2 === __K.m9 ? __K.M9 : __K.M7)}
+              , chooseFrom({}, {"key": __K.b, "time": "0:0:15", "duration": staccato16n})
+              , {"bassCOFShift": 1, "preferHoldVoicing": ((domVoicing2 === __K.d9 || domVoicing2 === __K.d7s5) ? __K.M9 : __K.M7)}
               ];
             const bar = {
-                "name": "ii-V-I " + (subdomVoicing === __K.m9 ? "(m9 to 9)" : "(m7 to 7)"),
+                "name": "ii-V-I",
+                "variantName": subdomVoicing === __K.m9 ? "m9 to 9" : subdomVoicing === __K.m7 ? "m7 to 7" : "m7b5",
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
             };
-            return bar;
+            return [bar];
+        }
+        else if (variationChoice === 1) {
+            if (COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne > 0) {
+                /* don't do a tritone sub ii-V-I while on this cooldown */
+                COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne--;
+                return makeBossaModulationPatterns(2, 0);
+            }
+            const subdomVoicing = chooseFrom(__K.m9, __K.m7, __K.m9);
+            const domVoicing0 = chooseFrom(subdomVoicing === __K.m9 ? __K.d9 : __K.d7, __K.alt, __K.d7s5); /* m7 to 7, m9 to 9 */
+            // const domVoicing1 = chooseFrom(__K.alt, domVoicing0, __K.d7s5);
+            // const domVoicing2 = (domVoicing1 === __K.alt ? __K.d7b9 : (domVoicing1 === __K.d7b9 ? chooseFrom(__K.aug, domVoicing1) : domVoicing1));
+            const patternEvents = 
+              [ {"key": __K.b, "time": "0:0:0", "duration": randomlyLengthen(Tone.Time("8n"))}
+              , {"key": subdomVoicing, "time": "0:0:2", "duration": "16n"}
+              , {"key": __K.lb, "time": "0:0:3", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:4", "duration": "8n"}
+              , {"key": subdomVoicing, "time": "0:0:5", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:7", "duration": staccato16n}
+              , {"bassCOFShift": 7}
+              , {"key": __K.b, "time": "0:0:8", "duration": "16n"}
+              , {"key": domVoicing0, "time": "0:0:9", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:11", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:12", "duration": "8n"}
+              , {"key": domVoicing0, "time": "0:0:12", "duration": "8n"}
+              , {"key": domVoicing0, "time": "0:0:14", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:15", "duration": staccato16n}
+              , {"bassCOFShift": 7}
+              ]
+            const bar = {
+                "name": "ii-V-I",
+                "variantName": (subdomVoicing === __K.m9 ? "m9 to 9" : subdomVoicing === __K.m7 ? "m7 to 7" : "d9 subdom") + " tritone sub",
+                "netCircleOfFifthsRotation": 2, 
+                "events": patternEvents
+            };
+            COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne = 3;
+            return [bar];
         }
         else if (variationChoice === 2) {
-
-        }
-        else if (variationChoice === 3) {
 
         }
     } /* end bassCOFShift === 2 */
@@ -241,18 +297,53 @@ function updateAutoComposerDisplay() {
     }
     if (COMPOSER_STATE.currentlyPlaying) {
         currentBarInfoElem.append(makeBold("Playing bar: "), !COMPOSER_STATE.currentlyPlayingBarName ? 
-            "(Loading)" : COMPOSER_STATE.currentlyPlayingBarName, makeBold(" \u2192 "), circleOfFifthsQueryFn(COMPOSER_STATE.currentBarTargetingKeyCenterCOFIndex, true).label);
+            "(Loading)" : COMPOSER_STATE.currentlyPlayingBarName, " \u2192 ", circleOfFifthsQueryFn(COMPOSER_STATE.currentBarTargetingKeyCenterCOFIndex, true).label);
         miscInfoElem.append("Number of bars played: " + COMPOSER_STATE.howManyBarsPlayed);
     }
     else {
-        currentBarInfoElem.innerText = "Press play to start Autocomposer";
+        currentBarInfoElem.innerText = "Press play to start the Bossa Nova Autocomposer";
     }
     autoComposerInfoDisplay.append(currentBarInfoElem, miscInfoElem);
 }
 
-// function updateAutoComposerQueueDisplay() {
-//     const autoComposerInfoDisplay
-// }
+function updateAutoComposerQueueDisplay(appendingBar=undefined, circleOfFifthsIndexOfNewBar=undefined) {
+    const autoComposerQueueDisplay = document.getElementById("autocomposer-queue-display");
+    if (!COMPOSER_STATE.currentlyPlaying) {
+        autoComposerQueueDisplay.innerText = "";
+        return;
+    }
+    const __appendReminderMsg = () => {
+        autoComposerQueueDisplay.innerText = "";
+        autoComposerQueueDisplay.append("Click/tap on bass note pads to queue up bars...");
+    }
+
+    if (COMPOSER_STATE.barsQueued === []) {
+        __appendReminderMsg();
+        return;
+    }
+
+    if (appendingBar !== undefined) {
+        /* clear the first textnode */
+        const firstChild = autoComposerQueueDisplay.firstChild;
+        if (firstChild && (firstChild.nodeType === Node.TEXT_NODE)) {
+            firstChild.remove();
+        }
+        const barElem = document.createElement("div");
+        barElem.classList.add("autocomposer-queue-item", "button-shadow");
+        barElem.append(appendingBar.name, document.createElement("br"), circleOfFifthsQueryFn(circleOfFifthsIndexOfNewBar, true).label); 
+        autoComposerQueueDisplay.appendChild(barElem);
+    }
+    else {
+        /* remove the first child barElem */
+        const firstQueueElem = autoComposerQueueDisplay.firstElementChild;
+        if (!firstQueueElem) {
+            __appendReminderMsg();
+        }
+        else {
+            firstQueueElem.remove();
+        }
+    }
+}
 
 function interpretPatternEvent(event) {
     /* schedule chordtriggers and manipulate MOUSEBOARD_STATE based on our
@@ -297,27 +388,34 @@ function startAutoComposer() {
         MOUSEBOARD_STATE.bassNoteSelected.circleOfFifthsIndex;
     Tone.Transport.scheduleRepeat(_ => {
         let bar = COMPOSER_STATE.barsQueued.shift();
+        updateAutoComposerQueueDisplay(); /* pop the queue in the display too */
         if (!bar) {
             /* if there is no queued bar, just go into the holding pattern */
-            bar = makeBossaHoldingPattern(((COMPOSER_STATE.howManyBarsPlayed+1) % 4 === 0) ? 2 : 1
-                    , COMPOSER_STATE.preferredHoldPatternVoicing);
+            bar = makeBossaHoldingPattern(COMPOSER_STATE.preferredHoldPatternVoicing);
         }
         /* NOTE for future... the time passed into transport callbacks is
          * actually global time, not transport seek position. For that we can
          * use Tone.Transport.seconds. */
+        /* schedule events specified in bar pattern data */
+        if (!bar.events) {
+            console.log(bar);
+        }
         for (const event of bar.events) {
             interpretPatternEvent(event);
         }
-        COMPOSER_STATE.currentlyPlayingBarName = bar.name;
+        /* update composer state with the bar's name and modulation amount */
+        COMPOSER_STATE.currentlyPlayingBarName = bar.name + " (" + bar.variantName + ")";
         COMPOSER_STATE.currentBarTargetingKeyCenterCOFIndex -= bar.netCircleOfFifthsRotation;
         COMPOSER_STATE.howManyBarsPlayed++;
         updateAutoComposerDisplay();
+
     }, "1m", 0);
     MOUSEBOARD_STATE.basspads.forEach(b => {
         b.element.classList.toggle("basspad-during-autocompose");
         b.hoverEventEnabled = false;
     });
     document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-display-playhead-animated");
+    document.getElementById("autocomposer-queue-display").classList.toggle("autocomposer-display-flashing-animated");
     Tone.Transport.start();
 }
 
@@ -325,16 +423,22 @@ function stopAutoComposer() {
     Tone.Transport.stop();
     Tone.Transport.cancel(0);
     COMPOSER_STATE.lastKeyCenterCOFIndexQueued = undefined;
+    COMPOSER_STATE.barsQueued = [];
     COMPOSER_STATE.howManyBarsPlayed = 0;
+    for (const cooldownTimer in COMPOSER_STATE.cooldowns) {
+        COMPOSER_STATE.cooldowns[cooldownTimer] = 0;
+    }
     ChordTriggers.unsync(); /* return manual control over trigger inputs */
     ChordTriggers.allOff(); /* force turn off any hanging notes */
     updateAutoComposerDisplay();
+    updateAutoComposerQueueDisplay();
     updateChordDisplay();
     MOUSEBOARD_STATE.basspads.forEach(b => {
         b.element.classList.toggle("basspad-during-autocompose");
         b.hoverEventEnabled = true;
     });
     document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-display-playhead-animated");
+    document.getElementById("autocomposer-queue-display").classList.toggle("autocomposer-display-flashing-animated");
 }
 
 function setupAutoComposer() {
@@ -344,7 +448,7 @@ function setupAutoComposer() {
         COMPOSER_STATE.currentlyPlaying = !COMPOSER_STATE.currentlyPlaying;
         if (COMPOSER_STATE.currentlyPlaying) {
             button.innerText = "\uf04d"; /* stop button */
-            button.style.fontSize = "1.70rem";
+            button.style.fontSize = "1.6rem";
             startAutoComposer();
         }
         else {
@@ -366,12 +470,26 @@ function setupAutoComposer() {
                 user selected/hovered over in manual mode (not autocomposer
                 mode) as well as the last scheduled bass note in autocomposer 
                 mode */
-            const last = COMPOSER_STATE.lastKeyCenterCOFIndexQueued;
+            let last = COMPOSER_STATE.lastKeyCenterCOFIndexQueued;
+            last = (last === undefined ? MOUSEBOARD_STATE.bassNoteSelected.circleOfFifthsIndex : last);
             /* update to the last queued key center as a circle-of-fifths index */
+            const newBars = makeBossaModulationPatterns(last - circleOfFifthsIndex
+                , Math.floor(12 * Math.random()));
+            COMPOSER_STATE.barsQueued.push(...newBars);
+            /* update the queue display with the new queued bar(s). Slight
+             * complication: since we want to show the key name in the queue
+             * item, we should imagine that we're keeping track of "current key"
+             * and increment it with the bar's net rotations throughout the
+             * autocomposer queue display updating
+             */
+            let __currCircleOfFifthsIndex = last;
+            for (const i in newBars) {
+                const newBar = newBars[i];
+                __currCircleOfFifthsIndex -= newBar.netCircleOfFifthsRotation;
+                updateAutoComposerQueueDisplay(newBar, __currCircleOfFifthsIndex);
+            }
+            /* it is only here that we update the current COF index for real */
             COMPOSER_STATE.lastKeyCenterCOFIndexQueued = circleOfFifthsIndex;
-            COMPOSER_STATE.barsQueued.push(makeBossaModulationPatterns(
-                (last === undefined ? MOUSEBOARD_STATE.bassNoteSelected.circleOfFifthsIndex : last) - circleOfFifthsIndex
-                , Math.floor(12 * Math.random())));
         }
     }
     for (const basspad of MOUSEBOARD_STATE.basspads) {
