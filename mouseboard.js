@@ -151,7 +151,7 @@ class ToneInstrument {
 class ElecPiano extends ToneInstrument {
     constructor() {
         super();
-        this.volumeNode = new Tone.Volume(-1).toDestination();
+        this.volumeNode = new Tone.Volume(-1.3).toDestination();
         this.synth = new Tone.FMSynth({
             "harmonicity":3,
             "modulationIndex": 14,
@@ -662,7 +662,7 @@ function setupBasspads() {
         const basspadSpec = circleOfFifthsQueryFn(i, true);
         
 
-        basspadElem.append((e => {e.textContent = (basspadSpec.label); return e;})(document.createElement("b")), document.createElement("br"), basspadSpec.cents);
+        basspadElem.append((e => {e.textContent = (basspadSpec.label); return e;})(document.createElement("b")));
         cof.appendChild(basspadElem);
 
         /* initialize it as an object and put it in the state */

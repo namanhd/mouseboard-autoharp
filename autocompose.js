@@ -51,10 +51,12 @@ const SCHEDULING_DELAY_FOR_LAG_PREVENTION = 0.08;
 const randomlyLengthen = t => t + Math.random() * 0.2;
 const staccato16n = Tone.Time("16n")-0.08;
 const staccato8n = Tone.Time("8n")-0.1;
+const staccato8n2 = Tone.Time("8n")-0.12;
 const chooseFrom = (...xs) => xs[Math.floor(Math.random() * xs.length)];
 
 function makeBossaHoldingPattern(voicingButton) {
     COMPOSER_STATE.weJustResolved = true;
+    COMPOSER_STATE.needResolutionBeforeNextBar = false;
     /* duration is bars:quarternotes:sixteenthnotes*/
     /* return one bar/measure of inputs */
     let variation;
@@ -118,19 +120,18 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         /* if a previous bar indicated that it needs a resolution immediately,
          * schedule that before moving onto the next modulation pattern */
         COMPOSER_STATE.needResolutionBeforeNextBar = false;
-        const paddingBarCOFShift = chooseFrom(0, 0, 0, 0, 0, 1);
+        const paddingBarCOFShift = 0;
         const hereYouAre = makeBossaModulationPatterns(paddingBarCOFShift, variation);
-        if (paddingBarCOFShift === 1) {
-            hereYouAre[0].events.unshift({"bassCOFShift": -1});
-            hereYouAre[0].netCircleOfFifthsRotation = 0;
-        }
-        return hereYouAre.concat(makeBossaModulationPatterns(bassCOFShift, variation));
+        const nowGoAhead = makeBossaModulationPatterns(bassCOFShift, variation);
+        return nowGoAhead === undefined ? undefined : hereYouAre.concat(nowGoAhead);
     }
     bassCOFShift = normalizeCircleOfFifthsIndex(bassCOFShift);
     if (bassCOFShift === 0) {
         COMPOSER_STATE.weJustResolved = true;
         COMPOSER_STATE.needResolutionBeforeNextBar = false;
-        return [makeBossaHoldingPattern(COMPOSER_STATE.preferredHoldPatternVoicing)];
+        const bar = makeBossaHoldingPattern(COMPOSER_STATE.preferredHoldPatternVoicing);
+        bar.name = "I";
+        return [bar];
     }
     if (bassCOFShift === 1) {
         COMPOSER_STATE.weJustResolved = true;
@@ -156,7 +157,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 1, "preferHoldVoicing": (domVoicing === __K.d7 ? __K.M7 : __K.M9)}
               ];
             const bar = {
-                "name": "V-I",
+                "name": "V",
                 "variantName":  (domVoicing === __K.d9 ? "dom9" : 
                                 (domVoicing === __K.d7 ? "dom7" : 
                                 (domVoicing === __K.d13 ? "dom13" : ""))),
@@ -187,7 +188,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 7, "preferHoldVoicing": __K.M9}
               ];
             const bar = {
-                "name": "V-I",
+                "name": "V",
                 "variantName": "tritone sub",
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
@@ -213,7 +214,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 1, "preferHoldVoicing": __K.M9}
               ];
             const bar = {
-                "name": "V-I",
+                "name": "V",
                 "variantName": "+alt",
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
@@ -253,7 +254,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 1, "preferHoldVoicing": ((domVoicing2 === __K.d9 || domVoicing2 === __K.d7s5) ? __K.M9 : __K.M7)}
               ];
             const bar = {
-                "name": "ii-V-I",
+                "name": "ii-V",
                 "variantName": subdomVoicing === __K.m9 ? "m9 to 9" : subdomVoicing === __K.m7 ? "m7 to 7" : "m7b5",
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
@@ -289,7 +290,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 7}
               ]
             const bar = {
-                "name": "ii-V-I",
+                "name": "ii-V",
                 "variantName": (subdomVoicing === __K.m9 ? "m9 to 9" : subdomVoicing === __K.m7 ? "m7 to 7" : "d9 subdom") + " tritone sub",
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
@@ -314,7 +315,6 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
         else if (variationChoice === 1) {
             /* big sus13 spam a la mario kart */
-            const staccato8n2 = Tone.Time("8n")-0.12
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0:0", "duration": randomlyLengthen(Tone.Time("8n"))}
               , {"key": __K.s13, "time": "0:0:2", "duration": "16n"}
@@ -343,6 +343,50 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
 
     } /* end bassCOFShift === 3 */
+    else if (bassCOFShift === 4) {
+        const nVariations = 1;
+        const variationChoice = (variation % nVariations);
+        if (variationChoice === 0) {
+            /* the simplest thing to do is string together two 2-5-1 */
+            const [twoFiveOne1] = makeBossaModulationPatterns(2, chooseFrom(0, 1, 2));
+            const [twoFiveOne2] = makeBossaModulationPatterns(2, chooseFrom(0, 1, 2));
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = false;
+            return [twoFiveOne1, twoFiveOne2];
+        }
+    } /* end bassCOFShift === 4 */
+    else if (bassCOFShift === 9) {
+        const nVariations = 1;
+        const variationChoice = (variation % nVariations);
+        if (variationChoice === 0) {
+            /* planing a M9! */
+            const patternEvents = 
+              [ {"key": __K.b, "time": "0:0:0", "duration": Tone.Time("8n")-0.08}
+              , {"key": __K.M9, "time": "0:0:2", "duration": "16n"}
+              , {"key": __K.b, "time": "0:0:3", "duration": randomlyLengthen(Tone.Time("8n"))}
+              , {"key": __K.M9, "time": "0:0:5", "duration": staccato8n}
+              , {"key": __K.lb, "time": "0:0:6", "duration": Tone.Time("8n")-0.08}
+              , {"key": __K.b, "time": "0:0:7", "duration": Tone.Time("16n")-0.05}
+              , {"bassCOFShift": 2}
+              , {"key": __K.b, "time": "0:0:8", "duration": staccato8n2}
+              , {"key": __K.M9, "time": "0:0:9", "duration": "16n"}
+              , {"key": __K.b, "time": "0:0:11", "duration": Tone.Time("16n")-0.05}
+              , {"key": __K.b, "time": "0:0:12", "duration": staccato8n}
+              , {"key": __K.M9, "time": "0:0:12", "duration": staccato8n}
+              , {"key": __K.b, "time": "0:0:14", "duration": "16n", "bassCOFShift": 7}
+              , {"key": __K.M9, "time": "0:0:14", "duration": "8n", "preferHoldVoicing": __K.M9}
+              ]
+            const bar = {
+                "name": "bIII-bII-I",
+                "variantName": "M9 planing",
+                "netCircleOfFifthsRotation": 9, 
+                "events": patternEvents
+            };
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            COMPOSER_STATE.weJustResolved = false;
+            return [bar];
+        }
+    }
     else if (bassCOFShift === 10) { /* a M2 up, very interesting; a 13 works well here */
         const nVariations = 1;
         const variationChoice = (variation % nVariations);
@@ -362,7 +406,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
     } /* end bassCOFShift === 10 */
     else if (bassCOFShift === 11) { /* a fifth up... should be very compatible so we just do a ii-V  */
-        const nVariations = 2;
+        const nVariations = 3;
         const variationChoice = (variation % nVariations);
         if (variationChoice === 0) {
             const twoFiveOne = makeBossaModulationPatterns(2, chooseFrom(0, 1, 2));
@@ -372,18 +416,25 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
             return twoFiveOne;
         }
-        if (variationChoice === 1) { /* schedule two bars! this will start a 3-6-2-5-1 */
+        if (variationChoice === 1 ||  variationChoice === 2) { /* schedule two bars! this will start a 3-6-2-5-1 */
             /* special handling.. since we need to have started from a resolved
             pattern in order to make that iii chord make sense, schedule a
             resolved pattern here first before moving on to the 36251*/
             let letsResolveFirst = []
+            
             if (!COMPOSER_STATE.weJustResolved) {
-                letsResolveFirst.concat(makeBossaModulationPatterns(0, variation));
+                letsResolveFirst = letsResolveFirst.concat(makeBossaModulationPatterns(0, variation));
             }
-            const [twoFiveOne1] = makeBossaModulationPatterns(2, 1);
+            if (variationChoice === 2) {
+                COMPOSER_STATE.cooldowns.alternateHoldPattern = 1;
+                const okaHold = makeBossaHoldingPattern(__K.two);
+                okaHold.name = "II/I";
+                letsResolveFirst = letsResolveFirst.concat(okaHold);
+            }
+            const [twoFiveOne1] = makeBossaModulationPatterns(2, (variationChoice === 2 ? 0 : 1)); /* shift=2 var=1 will force m7b5 */
             twoFiveOne1.events.unshift({"bassCOFShift": 7});
             twoFiveOne1.netCircleOfFifthsRotation = 9;
-            twoFiveOne1.name = "iii-VI-ii"
+            twoFiveOne1.name = "iii-VI"
             const [twoFiveOne2] = makeBossaModulationPatterns(2, 0);
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
@@ -496,8 +547,8 @@ function interpretPatternEvent(event) {
 function syncCSSanimationsToBPM(bpm) {
     const elemsSyncedToBPM = 
         Array.from(document.getElementsByClassName("autocomposer-display-playhead-animated")).concat(
-        Array.from(document.getElementsByClassName(" autocomposer-display-flashing-animated")).concat(
-        Array.from(document.getElementsByClassName(" cof-bg-during-autocompose"))));
+        Array.from(document.getElementsByClassName("autocomposer-display-flashing-animated")).concat(
+        Array.from(document.getElementsByClassName("cof-bg-during-autocompose"))));
     for (const i in elemsSyncedToBPM) {
         /* initial values are set to 3s (80 bpm), the update should scale the number accordingly */
         elemsSyncedToBPM[i].getAnimations().forEach(a => a.updatePlaybackRate(bpm / 80));
