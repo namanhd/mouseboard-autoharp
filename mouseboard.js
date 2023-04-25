@@ -151,7 +151,7 @@ class ToneInstrument {
 class ElecPiano extends ToneInstrument {
     constructor() {
         super();
-        this.volumeNode = new Tone.Volume(-4.5).toDestination();
+        this.volumeNode = new Tone.Volume(-1).toDestination();
         this.synth = new Tone.FMSynth({
             "harmonicity":3,
             "modulationIndex": 14,
@@ -173,7 +173,7 @@ class ElecPiano extends ToneInstrument {
                 "sustain": 0,
                 "release": 0.2
             }
-        }).toDestination(this.volumeNode);
+        }).connect(this.volumeNode);
         
     }
 } 

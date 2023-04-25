@@ -33,6 +33,9 @@ const COMPOSER_STATE =
   /* ^^ bars of music queued up. see makeBossaHoldingPattern for generating one bar */
   /* composition state preferences */
   , "preferredHoldPatternVoicing": __K.M9 /* we may prefer M7 instead of M9 for instance */
+  , "needResolutionBeforeNextBar": false /* force a Hold or a V-I bar in the next bar */
+  , "weJustResolved": true /* indicate that we've arrived at a tonic-feeling place */
+  /* our genned V-I bars work because they also start in a tonicky way ... */
   , "cooldowns": 
       { "bouncyTritoneSubTwoFiveOne": 0
       , "alternateHoldPattern": 1
@@ -51,6 +54,7 @@ const staccato8n = Tone.Time("8n")-0.1;
 const chooseFrom = (...xs) => xs[Math.floor(Math.random() * xs.length)];
 
 function makeBossaHoldingPattern(voicingButton) {
+    COMPOSER_STATE.weJustResolved = true;
     /* duration is bars:quarternotes:sixteenthnotes*/
     /* return one bar/measure of inputs */
     let variation;
@@ -60,7 +64,7 @@ function makeBossaHoldingPattern(voicingButton) {
     }
     else {
         variation = 1;  /* use the alt hold pattern and reset the cooldown */
-        COMPOSER_STATE.cooldowns.alternateHoldPattern = 2;
+        COMPOSER_STATE.cooldowns.alternateHoldPattern = 1;
     }
     const patternName = "Hold";
     const patternVariantName = "variant " + (variation+1);
@@ -110,16 +114,31 @@ function makeBossaHoldingPattern(voicingButton) {
 }
 
 function makeBossaModulationPatterns(bassCOFShift, variation) {
+    if (COMPOSER_STATE.needResolutionBeforeNextBar) {
+        /* if a previous bar indicated that it needs a resolution immediately,
+         * schedule that before moving onto the next modulation pattern */
+        COMPOSER_STATE.needResolutionBeforeNextBar = false;
+        const paddingBarCOFShift = chooseFrom(0, 0, 0, 0, 0, 1);
+        const hereYouAre = makeBossaModulationPatterns(paddingBarCOFShift, variation);
+        if (paddingBarCOFShift === 1) {
+            hereYouAre[0].events.unshift({"bassCOFShift": -1});
+            hereYouAre[0].netCircleOfFifthsRotation = 0;
+        }
+        return hereYouAre.concat(makeBossaModulationPatterns(bassCOFShift, variation));
+    }
     bassCOFShift = normalizeCircleOfFifthsIndex(bassCOFShift);
     if (bassCOFShift === 0) {
+        COMPOSER_STATE.weJustResolved = true;
+        COMPOSER_STATE.needResolutionBeforeNextBar = false;
         return [makeBossaHoldingPattern(COMPOSER_STATE.preferredHoldPatternVoicing)];
     }
     if (bassCOFShift === 1) {
-        const nVariations = 3;
+        COMPOSER_STATE.weJustResolved = true;
+        const nVariations = 4;
         const variationChoice = (variation % nVariations);
-        if (variationChoice === 0) {
-            /* simple dominant */
-            const domVoicing = chooseFrom(__K.d9, __K.d7, __K.d13);
+        if (variationChoice === 0 || variationChoice === 1) {
+            /* simple dominant. Variation 1 forces a 13 chord, otherwise identical to var0 */
+            const domVoicing = variationChoice === 1 ? __K.d13 : chooseFrom(__K.d9, __K.d7, __K.d13);
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": __K.M9, "time": "0:0:2", "duration": "16n"}
@@ -144,11 +163,12 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             };
+            COMPOSER_STATE.needResolutionBeforeNextBar = false;
             return [bar];
         }
-        else if (variationChoice === 1) {
+        else if (variationChoice === 2) {
             /* tritone sub */
-            const tritoneSubVoicing = chooseFrom(__K.m7b5, __K.d9);
+            const tritoneSubVoicing = chooseFrom(__K.m7b5, __K.d9, __K.d7s5);
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": __K.M9, "time": "0:0:2", "duration": "16n"}
@@ -172,9 +192,10 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             }
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
             return [bar];
         }
-        else if (variationChoice === 2) {
+        else if (variationChoice === 3) {
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": __K.M9, "time": "0:0:2", "duration": "16n"}
@@ -197,20 +218,20 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 1, 
                 "events": patternEvents
             }
+            COMPOSER_STATE.needResolutionBeforeNextBar = false;
             return [bar];
         }
     } /* end bassCOFShift === 1*/
     else if (bassCOFShift === 2) {
-        const nVariations = 2;
+        const nVariations = 3;
         const variationChoice = (variation % nVariations);
-        
-        if (variationChoice === 0) {
+        if (variationChoice === 0 || variationChoice === 1) {
             if (COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne > 0) {
-                /* tick down the cooldown for variation 1 */
+                /* tick down the cooldown for variation 2 */
                 COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne--;
             }
-            /* ii-V-I */
-            const subdomVoicing = chooseFrom(__K.m9, __K.m7, __K.m9,  __K.m7b5);
+            /* ii-V-I. Variation 0 is m7 or m9, variation 1 is m7b5 */
+            const subdomVoicing = variationChoice === 1 ? __K.m7b5 : chooseFrom(__K.m9, __K.m7, __K.m9);
             const domVoicing0 = subdomVoicing === __K.m7b5 ? __K.d7b9 : chooseFrom(subdomVoicing === __K.m9 ? __K.d9 : __K.d7, __K.alt, __K.d7b9); /* m7 to 7, m9 to 9 */
             const domVoicing1 = chooseFrom(__K.alt, domVoicing0, (domVoicing0 === __K.d7b9 ? domVoicing0 : __K.d7s5));
             const domVoicing2 = (domVoicing1 === __K.alt ? __K.d7b9 : (domVoicing1 === __K.d7b9 ? chooseFrom(__K.aug, domVoicing1) : domVoicing1));
@@ -237,12 +258,13 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
             };
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = false;
             return [bar];
         }
-        else if (variationChoice === 1) {
+        else if (variationChoice === 2) {
             if (COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne > 0) {
                 /* don't do a tritone sub ii-V-I while on this cooldown */
-                COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne--;
                 return makeBossaModulationPatterns(2, 0);
             }
             const subdomVoicing = chooseFrom(__K.m9, __K.m7, __K.m9);
@@ -272,23 +294,113 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
             };
-            COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne = 3;
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne = 2;
             return [bar];
         }
-        else if (variationChoice === 2) {
-
-        }
     } /* end bassCOFShift === 2 */
+    else if (bassCOFShift === 3) {
+        const nVariations = 2;
+        const variationChoice = (variation % nVariations);
+        if (variationChoice === 0) {
+            /* just a ii-V-I a fifth away.. no frills */
+            const twoFiveOne = makeBossaModulationPatterns(2, chooseFrom(0, 1, 2));
+            twoFiveOne[0].events.unshift({"bassCOFShift": 1});
+            twoFiveOne[0].netCircleOfFifthsRotation = 3;
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            return twoFiveOne;
+        }
+        else if (variationChoice === 1) {
+            /* big sus13 spam a la mario kart */
+            const staccato8n2 = Tone.Time("8n")-0.12
+            const patternEvents = 
+              [ {"key": __K.b, "time": "0:0:0", "duration": randomlyLengthen(Tone.Time("8n"))}
+              , {"key": __K.s13, "time": "0:0:2", "duration": "16n"}
+              , {"key": __K.lb, "time": "0:0:3", "duration": randomlyLengthen(Tone.Time("8n"))}
+              , {"key": __K.s13, "time": "0:0:5", "duration": staccato8n}
+              , {"key": __K.lb, "time": "0:0:6", "duration": staccato8n2}
+              , {"key": __K.b, "time": "0:0:7", "duration": staccato16n}
+              , {"bassCOFShift": -2}
+              , {"key": __K.b, "time": "0:0:8", "duration": staccato8n2}
+              , {"key": __K.s13, "time": "0:0:9", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:11", "duration": staccato8n2}
+              , {"key": __K.b, "time": "0:0:12", "duration": staccato8n}
+              , {"key": __K.s13, "time": "0:0:12", "duration": "8n"}
+              , {"key": __K.b, "time": "0:0:14", "duration": "16n", "bassCOFShift": 5}
+              , {"key": __K.s13, "time": "0:0:14", "duration": "8n", "preferHoldVoicing": __K.s13}
+              ]
+            const bar = {
+                "name": "I-II-bIII",
+                "variantName": "sus13 planing",
+                "netCircleOfFifthsRotation": 3, 
+                "events": patternEvents
+            };
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            COMPOSER_STATE.weJustResolved = false;
+            return [bar];
+        }
+
+    } /* end bassCOFShift === 3 */
+    else if (bassCOFShift === 10) { /* a M2 up, very interesting; a 13 works well here */
+        const nVariations = 1;
+        const variationChoice = (variation % nVariations);
+        if (variationChoice === 0) {
+            const five = makeBossaHoldingPattern(__K.d13); /* forced-d13 */
+            five.name = "V13-I";
+            five.events.unshift({"bassCOFShift": 9});
+            five.events.push({"bassCOFShift":1, "preferHoldVoicing": chooseFrom(__K.M9, __K.s13)});
+            five.netCircleOfFifthsRotation = 10;
+            /* the hanging V13 is very unstable-sounding until it resolves */
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            return [five];
+        }
+        else if (variationChoice === 1) {
+            
+        }
+    } /* end bassCOFShift === 10 */
+    else if (bassCOFShift === 11) { /* a fifth up... should be very compatible so we just do a ii-V  */
+        const nVariations = 2;
+        const variationChoice = (variation % nVariations);
+        if (variationChoice === 0) {
+            const twoFiveOne = makeBossaModulationPatterns(2, chooseFrom(0, 1, 2));
+            twoFiveOne[0].events.unshift({"bassCOFShift": 9});
+            twoFiveOne[0].netCircleOfFifthsRotation = 11;
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            return twoFiveOne;
+        }
+        if (variationChoice === 1) { /* schedule two bars! this will start a 3-6-2-5-1 */
+            /* special handling.. since we need to have started from a resolved
+            pattern in order to make that iii chord make sense, schedule a
+            resolved pattern here first before moving on to the 36251*/
+            let letsResolveFirst = []
+            if (!COMPOSER_STATE.weJustResolved) {
+                letsResolveFirst.concat(makeBossaModulationPatterns(0, variation));
+            }
+            const [twoFiveOne1] = makeBossaModulationPatterns(2, 1);
+            twoFiveOne1.events.unshift({"bassCOFShift": 7});
+            twoFiveOne1.netCircleOfFifthsRotation = 9;
+            twoFiveOne1.name = "iii-VI-ii"
+            const [twoFiveOne2] = makeBossaModulationPatterns(2, 0);
+            COMPOSER_STATE.weJustResolved = false;
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            return letsResolveFirst.concat([twoFiveOne1, twoFiveOne2]);
+        }
+    }
 }
 
 function updateAutoComposerDisplay() {
     const autoComposerInfoDisplay = document.getElementById("autocomposer-info-display");
     autoComposerInfoDisplay.innerText = "";
 
-    const currentBarInfoElem = document.createElement("div");
+    const textBarInfoElem = document.createElement("div");
+    
     const miscInfoElem = document.createElement("div");
 
-    currentBarInfoElem.classList.add("autocomposer-info-display-text");
+    textBarInfoElem.classList.add("autocomposer-info-display-text");
     
     const makeBold = text => {
         const e = document.createElement("strong");
@@ -296,14 +408,18 @@ function updateAutoComposerDisplay() {
         return e;
     }
     if (COMPOSER_STATE.currentlyPlaying) {
-        currentBarInfoElem.append(makeBold("Playing bar: "), !COMPOSER_STATE.currentlyPlayingBarName ? 
-            "(Loading)" : COMPOSER_STATE.currentlyPlayingBarName, " \u2192 ", circleOfFifthsQueryFn(COMPOSER_STATE.currentBarTargetingKeyCenterCOFIndex, true).label);
+        const prettyBarInfoElem = document.createElement("div");
+        prettyBarInfoElem.classList.add("autocomposer-queue-item");
+        prettyBarInfoElem.style.height = "auto";
+        prettyBarInfoElem.append(COMPOSER_STATE.currentlyPlayingBarName, " \u2192 ", circleOfFifthsQueryFn(COMPOSER_STATE.currentBarTargetingKeyCenterCOFIndex, true).label)
+        textBarInfoElem.append(makeBold("Playing bar: "), !COMPOSER_STATE.currentlyPlayingBarName ? 
+            "(Loading)" : prettyBarInfoElem);
         miscInfoElem.append("Number of bars played: " + COMPOSER_STATE.howManyBarsPlayed);
     }
     else {
-        currentBarInfoElem.innerText = "Press play to start the Bossa Nova Autocomposer";
+        textBarInfoElem.innerText = "Press play to start the Bossa Nova Autocomposer";
     }
-    autoComposerInfoDisplay.append(currentBarInfoElem, miscInfoElem);
+    autoComposerInfoDisplay.append(textBarInfoElem, miscInfoElem);
 }
 
 function updateAutoComposerQueueDisplay(appendingBar=undefined, circleOfFifthsIndexOfNewBar=undefined) {
@@ -377,8 +493,21 @@ function interpretPatternEvent(event) {
     }
 }
 
+function syncCSSanimationsToBPM(bpm) {
+    const elemsSyncedToBPM = 
+        Array.from(document.getElementsByClassName("autocomposer-display-playhead-animated")).concat(
+        Array.from(document.getElementsByClassName(" autocomposer-display-flashing-animated")).concat(
+        Array.from(document.getElementsByClassName(" cof-bg-during-autocompose"))));
+    for (const i in elemsSyncedToBPM) {
+        /* initial values are set to 3s (80 bpm), the update should scale the number accordingly */
+        elemsSyncedToBPM[i].getAnimations().forEach(a => a.updatePlaybackRate(bpm / 80));
+
+    }
+}
+
 function startAutoComposer() {
-    Tone.Transport.bpm.value = 80;
+    const _BPM = 84; /* base BPM in the css animations is 80bpm, but 84 is fine too */
+    Tone.Transport.bpm.value = _BPM;
     Tone.Transport.cancel(0);
     ChordTriggers.sync();
     /* this is just for info display purposes, but the autocomposer's starting
@@ -416,6 +545,7 @@ function startAutoComposer() {
     });
     document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-display-playhead-animated");
     document.getElementById("autocomposer-queue-display").classList.toggle("autocomposer-display-flashing-animated");
+    syncCSSanimationsToBPM(_BPM);
     Tone.Transport.start();
 }
 
@@ -475,6 +605,9 @@ function setupAutoComposer() {
             /* update to the last queued key center as a circle-of-fifths index */
             const newBars = makeBossaModulationPatterns(last - circleOfFifthsIndex
                 , Math.floor(12 * Math.random()));
+            if (!newBars) {
+                return;
+            }
             COMPOSER_STATE.barsQueued.push(...newBars);
             /* update the queue display with the new queued bar(s). Slight
              * complication: since we want to show the key name in the queue
