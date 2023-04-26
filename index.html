@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://kit.fontawesome.com/01b4a5c0e9.js" crossorigin="anonymous"></script>
     <style>
         body {
             font-family:'Source Sans Pro', sans-serif;
@@ -45,6 +46,7 @@
             margin-left: -16px;
             margin-top: -8px;
             border: 16px solid #0000;
+            overflow: hidden; /* so that we can put rotating stuff inside */
         }
 
         .cof-bg-during-manual {
@@ -289,7 +291,6 @@
             /* font-weight: 700; */
             padding: 10px 15px;
             
-            aspect-ratio: 1/1;  
             cursor:pointer;
             user-select: none;
             
@@ -304,7 +305,6 @@
         .autocomposer-button:active {
             transform: scale(0.9);
         }
-
         .autocomposer-display {
             /* border: 1px dashed black; */
             border-radius: 12px;
@@ -399,11 +399,12 @@
         <div id="chord-symbol-display"></div>
         <div class="collapsible-container">
             <div class="autocomposer-ui-row">
-                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child button-shadow fa">&#xf04b;</button>
+                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child button-shadow fas fa-play"></button>
                 <div id="autocomposer-info-display" class="autocomposer-display autocomposer-child">Press play to start the Bossa Nova Autocomposer</div>
             </div>
             <div class="autocomposer-ui-row">
                 <div id="autocomposer-queue-display" class="autocomposer-display autocomposer-child"></div>
+                <button id="autocomposer-random-button" class="autocomposer-button autocomposer-child button-shadow"><i class="fas fa-dice"></i></button>
             </div>
         </div>
         <div class="info-panel-scrollable-section">
@@ -411,8 +412,8 @@
                 <button class="toggle-button button-shadow" onclick="layoutBasspads()">Toggle between Circle, Tonnetz, and Piano layouts 🔁</button>
             </div>
             <div class="collapsible-container">
-                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>How to play 🌱</button>
-                <div class="collapsible-content collapsible-content-active">
+                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Manual mode: How to play 🌱</button>
+                <div class="collapsible-content">
                     <div>
                         <p>
                         Hover over the pads to select a bass note. Use the keyboard to play chord voicings on the current bass note.
@@ -434,25 +435,29 @@
                 </div>
             </div>
             <div class="collapsible-container">
-                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>What to play 🎼</button>
+                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Manual mode: What to play 🎼</button>
                 <div class="collapsible-content">
                     <ul>
                         <li><b>Two-five-one: </b>  Hover over three consecutive pads (in counterclockwise order) and press <b>z+s, z+d, z+f</b> respectively.
                             You get a nice ii-V-I progression using the minor 9th, dominant 9th, and major 9th voicings.</li>
-                        <li><b>More progressions: </b> Other progressions to try (again while stepping CCW around the circle) is <b>z+s, z+d, z+f, z+g, z+s, z+t, z+f</b> (m9, 9, M9, sus13, m9, 7#5, M9).
-                        Yet another cool progression around the circle: <b>z+s, z+r, z+s, z+r, z+s, z+d, z+f</b>. Jazzy!</li>
                         <li><b>Slash chords: </b> play a voicing, and while holding down the voicing button, move your mouse to a different pad and press <b>z</b> to play the new bass note.
                         You have (most likely) played a <i>slash chord</i>, where the bass note is different from the bass note implied by the upper notes!</li>
+                        <li><b>Play around with the Autocomposer</b> to get ideas for chord progressions to play by hand!</li>
                     </ul>
                 </div>
             </div>
             <div class="collapsible-container">
-                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Using the Bossa Nova Autocomposer 🤖</button>
-                <div class="collapsible-content">
+                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>Autocomposer mode 🤖</button>
+                <div class="collapsible-content collapsible-content-active">
                     <p>
                         <p><strong>Let the Autocomposer generate for you an infinite stream of bossa nova! </strong></p>
-                        While the Autocomposer plays, click/tap on a bass note pad to queue up a new key center.
-                        The Autocomposer will write bars of music to smoothly move to each of your requested key centers in the queue.
+                        <ul>
+                            <li>While the Autocomposer plays, click/tap on a note pad (or the <i class="fas fa-dice"></i> Random button) to request a new key center.</li>
+                            <li>The Autocomposer will create and queue up bars of music (chord progressions) to smoothly move to each of your requested key centers in order. </li>
+                            <li>Every four beats, one new bar is popped from the queue and played. More than one bar can be queued every time you request a key. </li>
+                            <li>Each queued bar shows the chord progression type, as well as the key center arrived at by the time it ends.</li>
+                        </ul>
+                        <p><strong>Tip: </strong>Try clicking note pads close (on the circle of fifths) to the last queued-up bar's key for familiar progressions. However, the Autocomposer can handle moving from any key to any other key; feel free to play around!</p>
                     </p>
                 </div>
             </div>

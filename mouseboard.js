@@ -75,7 +75,7 @@ function updateChordDisplay() {
 */
 const BASE_MEOW_FILTER = 400;
 const MEOW_FILTER_MAX_INCREASE = 600;
-
+/*
 class Meowsynth {
     constructor() {
         this.volumeNode = new Tone.Volume(-12).toDestination();
@@ -86,8 +86,8 @@ class Meowsynth {
         const mult = new Tone.Multiply();
         const add = new Tone.Add();
         this.filterFreqBase = new Tone.Signal(BASE_MEOW_FILTER, "frequency");
-        this.filterFreqIncrease = new Tone.Signal(MEOW_FILTER_MAX_INCREASE, "frequency"); /* updated by tilt */
-        this.meowEnvelopeNode = new Tone.Envelope(0.001, 0, 1, 0.08); /* triggered by touch/click */
+        this.filterFreqIncrease = new Tone.Signal(MEOW_FILTER_MAX_INCREASE, "frequency"); // updated by tilt
+        this.meowEnvelopeNode = new Tone.Envelope(0.001, 0, 1, 0.08); // triggered by touch/click
 
         this.filterFreqIncrease.connect(mult);
         this.meowEnvelopeNode.connect(mult.factor);
@@ -100,7 +100,7 @@ class Meowsynth {
         this.synth.envelope.attack = 0.001;
         this.synth.envelope.decay = 0;
         this.synth.envelope.sustain = 1.0;
-        this.synth.envelope.release = 0.08; /* long release */
+        this.synth.envelope.release = 0.08; // long release
 
     }
     on(f, velocity, scheduledDuration=undefined, scheduledTime=undefined) {
@@ -126,7 +126,7 @@ class Meowsynth {
         this.meowEnvelopeNode.unsync();
     }
 }
-
+*/
 class ToneInstrument {
     on(f, velocity, scheduledDuration=undefined, scheduledTime=undefined) {
         if ((scheduledDuration === undefined) || (scheduledTime === undefined)) {
@@ -151,7 +151,7 @@ class ToneInstrument {
 class ElecPiano extends ToneInstrument {
     constructor() {
         super();
-        this.volumeNode = new Tone.Volume(-1.3).toDestination();
+        this.volumeNode = new Tone.Volume(-2).toDestination();
         this.synth = new Tone.FMSynth({
             "harmonicity":3,
             "modulationIndex": 14,
@@ -186,10 +186,43 @@ class SawBass extends ToneInstrument {
         this.synth = new Tone.Synth().connect(this.filterNode); 
         this.synth.oscillator.type = "sawtooth";
 
-        this.synth.envelope.attack = 0.02;
-        this.synth.envelope.decay = 0;
-        this.synth.envelope.sustain = 0.2;
-        this.synth.envelope.release = 0.08;
+        this.synth.envelope.attack = 0.01;
+        this.synth.envelope.decay = 0.8;
+        this.synth.envelope.sustain = 0.5;
+        this.synth.envelope.release = 0.1;
+    }
+}
+
+class AMBass extends ToneInstrument {
+    constructor() {
+        super();
+        this.volumeNode = new Tone.Volume(9).toDestination();
+        this.synth = new Tone.AMSynth({
+            "harmonicity": 2,
+            "oscillator": {
+                "type": "amsine2",
+                  "modulationType" : "sine",
+                  "harmonicity": 3
+            },
+            "envelope": {
+                "attack": 0.006,
+                "decay": 4,
+                "sustain": 0.04,
+                "release": 0.5
+            },
+            "modulation" : {
+                  "volume" : 12,
+                "type": "amsine2",
+                  "modulationType" : "sine",
+                  "harmonicity": 2
+            },
+            "modulationEnvelope" : {
+                "attack": 0.006,
+                "decay": 0.2,
+                "sustain": 0.2,
+                "release": 0.4
+            }
+        }).connect(this.volumeNode);
     }
 }
 
@@ -279,8 +312,11 @@ class Chordplayer {
             else if (synthName === "elecpiano") {
                 synth = new ElecPiano();
             }
-            else if (synthName === "basssynth") {
+            else if (synthName === "sawbass") {
                 synth = new SawBass();
+            }
+            else if (synthName === "ambass") {
+                synth = new AMBass();
             }
             this.voices[i] = new Voice(synth, autoVoiceLeadingMode);
         }
@@ -401,7 +437,7 @@ const KEYBOARD_TO_VOICING_MAP =
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": true, "hidden": false}
   , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false} /* alt */
   , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
   }
@@ -683,7 +719,7 @@ function setup(callbacksAfterwards) {
         console.log("tonejs ready");
         MOUSEBOARD_STATE.chordplayers = {
             "chord": new Chordplayer("elecpiano", N_VOICES_PER_INSTRUMENT, "updown"),
-            "bass": new Chordplayer("basssynth", 1, "down") 
+            "bass": new Chordplayer("ambass", 1, "down") 
             /* this is just a bass note, played an octave below the 'chord' chordplayer */
         };
         start_prompt_screen.remove();
