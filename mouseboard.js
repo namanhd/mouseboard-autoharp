@@ -4,7 +4,7 @@
 
 const BASE_FREQ = 261.625/2;
 const N_VOICES_PER_INSTRUMENT = 4;
-const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 6;
+const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = [-6, 2];
 
 /* "application state", things that can change over the course of execution */
 const MOUSEBOARD_STATE = 
@@ -175,7 +175,6 @@ class ElecPiano extends ToneInstrument {
                 "release": 0.2
             }
         }).connect(this.volumeNode);
-        
     }
 } 
 
@@ -264,23 +263,23 @@ class Voice {
         voiceleading */
         /* can change envelope settings here maybe */
     }
-    autoVoiceLeading(cents) {
+    autoVoiceLeading(cents, overrideVoiceLeadingMode=undefined) {
         if (this.lastPlayedCents === undefined) {
             this.lastPlayedCents = cents;
             return cents;
         }
-        if (cents === 0) {
-            /* don't voicelead whenever the root note is requested */
-            return cents;
-        }
+        // if (cents === 0) {
+        //     /* don't voicelead whenever the root note is requested */
+        //     return cents;
+        // }
         /* allow +-1200 range in the given cents, whichever one is closest
          * to the last played value. However, clamp to be between -2400 and 
          * +2400  of the original requested cents */
         let tries;
-        if (this.autoVoiceLeadingMode === "updown") {
+        if (overrideVoiceLeadingMode === "updown" || this.autoVoiceLeadingMode === "updown") {
             tries = [cents, cents-1200, cents+1200];
         } 
-        else if (this.autoVoiceLeadingMode === "down") {
+        else if (overrideVoiceLeadingMode === "down" || this.autoVoiceLeadingMode === "down") {
             tries = [cents, cents-1200];
         } 
         else {
@@ -290,7 +289,7 @@ class Voice {
         const distancesToLastPlayedCents = tries.map(c => Math.abs(c - this.lastPlayedCents));
         let result = tries[distancesToLastPlayedCents.indexOf(Math.min(...distancesToLastPlayedCents))];
         result = Math.min(Math.max(result, cents - 1200), cents + 2400);
-        if (result < 0 || result > 3100) {
+        if (result < 0 || result > 2100) {
             return cents;
         }
         if (result < cents) {
@@ -299,7 +298,8 @@ class Voice {
         else if (result > cents) {
             this.timesOctaveShifted++;
         }
-        if (Math.abs(this.timesOctaveShifted) > VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES) {
+        if (this.timesOctaveShifted > VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES[1] ||
+            this.timesOctaveShifted < VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES[0]) {
             this.resetVoiceLeadingMemory()
             return cents;
         }
@@ -307,7 +307,10 @@ class Voice {
     }
 
     on(cents, velocity=1, doAutoVoiceLeading=true, scheduledDuration=undefined, scheduledTime=undefined) {
-        cents = doAutoVoiceLeading ? this.autoVoiceLeading(cents) : cents;
+        if (!doAutoVoiceLeading) {
+            this.timesOctaveShifted = 0;
+        }
+        cents = doAutoVoiceLeading ? this.autoVoiceLeading(cents, doAutoVoiceLeading) : cents;
         this.lastPlayedCents = cents;
         this.instrument.on(BASE_FREQ * centsToRatio(cents), velocity, scheduledDuration, scheduledTime);
     }
@@ -455,7 +458,8 @@ const KEYBOARD_TO_VOICING_MAP =
   , "x": {"name": "m7", "bass": [], "chord": [0, 300, 700, 1000], "voicelead":true, "hidden": false}
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true, "hidden": false}
   , "v": {"name": "M7", "bass": [], "chord": [0, 400, 700, 1100], "voicelead": true, "hidden": false}
-  , "b": {"name": "sus13", "bass": [], "chord": [0, 1000, 1700, 2100], "voicelead": true, "hidden": false}
+  , "b": {"name": "sus13", "bass": [], "chord": [-200, 0, 1700-1200, 2100-1200], "voicelead": "down", "hidden": false}
+  , "n": {"name": "M7c", "bass": [], "chord": [-100, 0, 400, 700], "voicelead": true, "hidden": false} /* inverted M7 with fifth on top */
   , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true, "hidden": false}
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}
@@ -464,8 +468,8 @@ const KEYBOARD_TO_VOICING_MAP =
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": true, "hidden": false}
-  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false} /* alt */
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
+  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": true, "hidden": false} /* alt */
   , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
   }
 
