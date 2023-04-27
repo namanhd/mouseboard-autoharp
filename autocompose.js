@@ -43,9 +43,11 @@ const COMPOSER_STATE =
     // melodyplayer: todo... meowsynth player that plays melody on top of the chord progy.
   , "currentlyPlayingBarName": ""
   , "howManyBarsPlayed": 0 
+      /* NEW bossa nova drum kit */
+  , "drumPattern": []
   };
 
-const SCHEDULING_DELAY_FOR_LAG_PREVENTION = 0.08;
+const SCHEDULING_DELAY_FOR_LAG_PREVENTION = 0.10;
 
 /* random choice and shorthand functions for autocomposer */
 const randomlyLengthen = t => t + Math.random() * 0.2;
@@ -276,7 +278,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               ];
             const bar = {
                 "name": "ii-V",
-                "variantName": subdomVoicing === __K.m9 ? "m9 to 9" : subdomVoicing === __K.m7 ? "m7 to 7" : "m7b5",
+                "variantName": subdomVoicing === __K.m9 ? "m9 to 9" : subdomVoicing === __K.m7 ? "m7 to 7" : "m7♭5",
                 "netCircleOfFifthsRotation": 2, 
                 "events": patternEvents
             };
@@ -352,7 +354,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"key": __K.s13, "time": "0:0:14", "duration": "8n"}
               ]
             const bar = {
-                "name": "I-II-♭III",
+                "name": "VI-VII-I",
                 "variantName": "sus13 planing",
                 "netCircleOfFifthsRotation": 3, 
                 "events": patternEvents
@@ -428,7 +430,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
     }
     else if (bassCOFShift === 8) {
-        const nVariations = 2;
+        const nVariations = 3;
         const variationChoice = (variation % nVariations);
         if (variationChoice === 0) {
             return makeBossaModulationPatternsByTwoSmallerOnes(bassCOFShift, variation);
@@ -444,12 +446,44 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             COMPOSER_STATE.preferredHoldPatternVoicing = __K.M9;
             return five;
         }
+        else if (variationChoice === 2) {
+            /* coltrane changes */
+            const tonicVoicing = chooseFrom(__K.M9, __K.M7);
+            const domVoicing = tonicVoicing === __K.M9 ? __K.d9 : __K.d7;
+            const patternEvents = 
+              [ {"key": __K.b, "time": "0:0", "duration": "8n"}
+              , {"key": tonicVoicing, "time": "0:0:2", "duration": "16n"}
+              , {"key": __K.b, "time": "0:0:3", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:4", "duration": randomlyLengthen(Tone.Time("16n")), "bassCOFShift": 3}
+              , {"key": domVoicing, "time": "0:0:5", "duration": "16n"}
+              , {"key": __K.b, "time": "0:0:7", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:8", "duration": "16n", "bassCOFShift": 1}
+              , {"key": tonicVoicing, "time": "0:0:9", "duration": randomlyLengthen(Tone.Time("16n"))}
+              , {"key": __K.b, "time": "0:0:11", "duration": staccato16n}
+              , {"key": __K.b, "time": "0:0:12", "duration": "8n", "bassCOFShift": 3}
+              , {"key": domVoicing, "time": chooseFrom("0:0:13", "0:0:14"), "duration": "16n"}
+              , {"key": __K.b, "time": "0:0:15", "duration": staccato16n}
+              , {"bassCOFShift": 1}
+              ];
+            const bar = {
+                "name": "Coltrane",
+                "variantName": tonicVoicing === __K.M9 ? "M9 to 9" : "M7 to 7",
+                "netCircleOfFifthsRotation": 8, 
+                "events": patternEvents
+            };
+            COMPOSER_STATE.weJustResolved = true;
+            COMPOSER_STATE.needResolutionBeforeNextBar = true;
+            COMPOSER_STATE.preferredHoldPatternVoicing = tonicVoicing;
+            return [bar];
+        }
     }
     else if (bassCOFShift === 9) {
-        const nVariations = 1;
+        const nVariations = 2;
         const variationChoice = (variation % nVariations);
-        if (variationChoice === 0) {
+        if (variationChoice === 0 || variationChoice === 1) {
             /* planing a M9! */
+            const firstShift = variationChoice === 0 ? 2 : -2;
+            const secondShift = variationChoice === 0 ? 7 : 11;
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0:0", "duration": Tone.Time("8n")-0.08}
               , {"key": __K.M9, "time": "0:0:2", "duration": "16n"}
@@ -457,17 +491,17 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"key": __K.M9, "time": "0:0:5", "duration": staccato8n}
               , {"key": __K.lb, "time": "0:0:6", "duration": Tone.Time("8n")-0.08}
               , {"key": __K.b, "time": "0:0:7", "duration": Tone.Time("16n")-0.05}
-              , {"bassCOFShift": 2}
+              , {"bassCOFShift": firstShift}
               , {"key": __K.b, "time": "0:0:8", "duration": staccato8n2}
               , {"key": __K.M9, "time": "0:0:9", "duration": "16n"}
               , {"key": __K.b, "time": "0:0:11", "duration": Tone.Time("16n")-0.05}
               , {"key": __K.b, "time": "0:0:12", "duration": staccato8n}
               , {"key": __K.M9, "time": "0:0:12", "duration": staccato8n}
-              , {"key": __K.b, "time": "0:0:14", "duration": "16n", "bassCOFShift": 7}
+              , {"key": __K.b, "time": "0:0:14", "duration": "16n", "bassCOFShift": secondShift}
               , {"key": __K.M9, "time": "0:0:14", "duration": "8n"}
               ]
             const bar = {
-                "name": "♭III-♭II-I",
+                "name": variationChoice === 0 ? "♭III-♭II-I" : "♭III-IV-I",
                 "variantName": "M9 planing",
                 "netCircleOfFifthsRotation": 9, 
                 "events": patternEvents
@@ -495,13 +529,14 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
         else if (variationChoice === 1) {
             /* also a d13 as above, but leads with the current tonic still */
-            const [five] = makeBossaModulationPatterns(1, 1); /* shift=1 var=1 forces the d13 */
-            five.events[6].bassCOFShift = 9;
-            five.netCircleOfFifthsRotation = 10;
+            const five = makeBossaModulationPatterns(1, 1); /* shift=1 var=1 forces the d13 */
+            const idxLastRecursedBar = 0; // or maybe five.length-1;
+            five[idxLastRecursedBar].events[6].bassCOFShift = 9;
+            five[idxLastRecursedBar].netCircleOfFifthsRotation = 10;
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
             COMPOSER_STATE.preferredHoldPatternVoicing = __K.M9;
-            return [five];
+            return five;
         }
     } /* end bassCOFShift === 10 */
     else if (bassCOFShift === 11) { /* a fifth up... should be very compatible so we just do a ii-V  */
@@ -530,16 +565,43 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 okaHold.name = "II/I";
                 letsResolveFirst = letsResolveFirst.concat(okaHold);
             }
-            const [twoFiveOne1] = makeBossaModulationPatterns(2, (variationChoice === 2 ? 0 : 1)); /* shift=2 var=1 will force m7b5 */
-            twoFiveOne1.events.unshift({"bassCOFShift": 7});
-            twoFiveOne1.netCircleOfFifthsRotation = 9;
-            const [twoFiveOne2] = makeBossaModulationPatterns(2, 0);
+            const twoFiveOne1 = makeBossaModulationPatterns(2, (variationChoice === 2 ? 0 : 1)); /* shift=2 var=1 will force m7b5 */
+            const idxLastRecursedBar = twoFiveOne1.length - 1;
+            twoFiveOne1[idxLastRecursedBar].events.unshift({"bassCOFShift": 7});
+            twoFiveOne1[idxLastRecursedBar].netCircleOfFifthsRotation = 9;
+            const twoFiveOne2 = makeBossaModulationPatterns(2, 0);
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
-            return letsResolveFirst.concat([twoFiveOne1, twoFiveOne2]);
+            return letsResolveFirst.concat(twoFiveOne1, twoFiveOne2);
         }
     }
 }
+
+function makeBossaDrumPattern() {
+    const drumDur = 0.5;
+    const kick = "kick";
+    const shaker = "shaker";
+    const stick = "stick";
+    const kickLowVel = 0.75;
+    const kickHiVel = 0.85;
+    const shakerLowVel = 0.1;
+    const shakerHiVel = 0.4;
+    const stickVel = 1.4;
+    const patternEvents = [];
+    for (let beat = 0; beat < 16; beat++) {
+        const here = "0:0:" + beat;
+        if ((beat % 4) === 0)  {
+            patternEvents.push({"drum": kick, "time": here, "duration": drumDur, "drumVel": kickHiVel});
+            patternEvents.push({"drum": kick, "time": "0:0:"+((beat-1) === (-1) ? 15 : (beat-1)), "duration": drumDur, "drumVel": kickLowVel});
+        }
+        patternEvents.push({"drum": shaker, "time": here, "duration": drumDur, "drumVel": ((beat + 2) % 4 === 0 ? shakerHiVel : shakerLowVel)});
+        if (beat >= 2 && ((beat-2) % 3) === 0) {
+            patternEvents.push({"drum": stick, "time": here, "duration": drumDur, "drumVel": stickVel});
+        }
+    }
+    return patternEvents;
+}
+
 
 function updateAutoComposerDisplay() {
     const autoComposerInfoDisplay = document.getElementById("autocomposer-info-display");
@@ -618,7 +680,9 @@ function updateAutoComposerQueueDisplay(appendingBar=undefined, circleOfFifthsIn
 function interpretPatternEvent(event) {
     /* schedule chordtriggers and manipulate MOUSEBOARD_STATE based on our
      * pattern event data. An event can contain both bassCOFShift or key types
-     * at the same time. The bass shift is processed first. */
+     * at the same time. The bass shift is processed first. 
+     * NEW (after autocomposer) this can handle "drum" field and "drumVel" too. 
+     */
     
     if (event.bassCOFShift !== undefined) {
         /* bass change event, change MOUSEBOARD_STATE's selected bass. Contains
@@ -641,6 +705,14 @@ function interpretPatternEvent(event) {
             Tone.Time(event.duration), 
             SCHEDULING_DELAY_FOR_LAG_PREVENTION + Tone.Transport.seconds + Tone.Time(event.time));
     }
+    if (event.drum !== undefined) {
+        /* schedule the drum sampler note */
+        if (MOUSEBOARD_STATE.drummer.loaded) {
+            DrumTriggers.on(event.drum, event.drumVel, 
+                Tone.Time(event.duration), 
+                SCHEDULING_DELAY_FOR_LAG_PREVENTION + Tone.Transport.seconds + Tone.Time(event.time));
+        }
+    }
 }
 
 function syncCSSanimationsToBPM(bpm) {
@@ -660,6 +732,7 @@ function startAutoComposer() {
     Tone.Transport.bpm.value = _BPM;
     Tone.Transport.cancel(0);
     ChordTriggers.sync();
+    DrumTriggers.sync();
     /* this is just for info display purposes, but the autocomposer's starting
      * key center is whatever bass note was last selected by the user in manual
      * play mode */
@@ -688,6 +761,10 @@ function startAutoComposer() {
         COMPOSER_STATE.howManyBarsPlayed++;
         updateAutoComposerDisplay();
 
+        /* NEW (after autocomposer) schedule drum pattern */
+        for (const event of COMPOSER_STATE.drumPattern) {
+            interpretPatternEvent(event);
+        }
     }, "1m", 0);
     MOUSEBOARD_STATE.basspads.forEach(b => {
         b.element.classList.toggle("basspad-during-autocompose");
@@ -710,6 +787,8 @@ function stopAutoComposer() {
     }
     ChordTriggers.unsync(); /* return manual control over trigger inputs */
     ChordTriggers.allOff(); /* force turn off any hanging notes */
+    DrumTriggers.unsync();
+    DrumTriggers.allOff();
     updateAutoComposerDisplay();
     updateAutoComposerQueueDisplay();
     updateChordDisplay();
@@ -800,4 +879,7 @@ function setupAutoComposer() {
     document.getElementById("autocomposer-random-button").addEventListener("click", e => {
         targetNewKeyFromBasspad(Math.floor(Math.random() * 12));
     });
+
+    /* NEW (after autocomposer) make drum pattern */
+    COMPOSER_STATE.drumPattern = makeBossaDrumPattern();
 }

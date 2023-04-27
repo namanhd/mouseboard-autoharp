@@ -12,6 +12,9 @@
         body {
             font-family:'Source Sans Pro', sans-serif;
         }
+        li {
+            padding-bottom: 4px;
+        }
 
         #start-prompt-screen {
             font-family:'Source Sans Pro', sans-serif;
@@ -383,13 +386,14 @@
     </style>
     <!-- tone.js import -->
     <script src="https://tonejs.github.io/build/Tone.js"></script>
+    <script src="drumsample_blobs.js"></script>
     <script src="mouseboard.js"></script>
     <script src="autocompose.js"></script>
 </head>
 
 <body>
 
-<h2 style="display:inline">mouseboard</h2>, a mouse-and-keyboard (and touch!) autoharp <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a>
+<h2 style="display:inline">mouseboard</h2>, a mouse-and-keyboard (and touch (coming soon)) autoharp <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a>
 
 
 <div class="container">
@@ -453,11 +457,12 @@
                         <p><strong>Let the Autocomposer generate for you an infinite stream of bossa nova! </strong></p>
                         <ul>
                             <li>While the Autocomposer plays, click/tap on a note pad (or the <i class="fas fa-dice"></i> Random button) to request a new key center.</li>
-                            <li>The Autocomposer will create and queue up bars of music (chord progressions) to smoothly move to each of your requested key centers in order. </li>
-                            <li>Every four beats, one new bar is popped from the queue and played. More than one bar can be queued every time you request a key. </li>
+                            <li>The Autocomposer will create and queue up bars of music (chord progressions) to smoothly move to each of your requested key centers in order. 
+                                More than one bar can be queued every time you request a key. </li>
+                            <li>Every four beats, one new bar is popped from the queue and played.</li>
                             <li>Each queued bar shows the chord progression type, as well as the key center arrived at by the time it ends.</li>
                         </ul>
-                        <p><strong>Tip: </strong>Try clicking note pads close (on the circle of fifths) to the last queued-up bar's key for familiar progressions. However, the Autocomposer can handle moving from any key to any other key; feel free to play around!</p>
+                        <p><strong>Tip: </strong>Try clicking keys close to the ones you last clicked (or close to the last-queued bar's key). However, the Autocomposer can handle moving from any key to any other key; feel free to play around!</p>
                     </p>
                 </div>
             </div>

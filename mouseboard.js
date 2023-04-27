@@ -10,6 +10,7 @@ const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = 6;
 const MOUSEBOARD_STATE = 
   { "basspads":  undefined
   , "chordplayers": undefined
+  , "drummer": undefined /* NEW (after autocomposer) a bossa nova drum kit */
   , "bassNoteSelected": {"label": "C", "cents": 0, "circleOfFifthsIndex": 1}
     /* ^ this isn't shown in chorddisplay but is used in setting the other ones
      * correctly. This will also be edited live by the autocomposer to play its
@@ -73,8 +74,8 @@ function updateChordDisplay() {
   changing envelope of Synth(): https://tonejs.github.io/docs/14.7.77/Synth#envelope
   https://tonejs.github.io/docs/14.7.77/AmplitudeEnvelope 
 */
-const BASE_MEOW_FILTER = 400;
-const MEOW_FILTER_MAX_INCREASE = 600;
+// const BASE_MEOW_FILTER = 400;
+// const MEOW_FILTER_MAX_INCREASE = 600;
 /*
 class Meowsynth {
     constructor() {
@@ -196,7 +197,7 @@ class SawBass extends ToneInstrument {
 class AMBass extends ToneInstrument {
     constructor() {
         super();
-        this.volumeNode = new Tone.Volume(9).toDestination();
+        this.volumeNode = new Tone.Volume(9.5).toDestination();
         this.synth = new Tone.AMSynth({
             "harmonicity": 2,
             "oscillator": {
@@ -225,6 +226,32 @@ class AMBass extends ToneInstrument {
         }).connect(this.volumeNode);
     }
 }
+
+class BossaDrumKit extends ToneInstrument {
+    constructor() {
+        super();
+        this.loaded = false;
+        this.volumeNode = new Tone.Volume(-12).toDestination();
+        this.synth = new Tone.Sampler({
+            "urls": {
+                "A1": __DATAURL_PERC_KICK_ELEC,
+                "A2": __DATAURL_PERC_SHAKER,
+                "A3": __DATAURL_PERC_
+            },
+            "onload": () => { this.loaded = true; }
+        }).connect(this.volumeNode);
+        this.keys = {
+            "kick": "A1",
+            "shaker": "A2",
+            "stick": "A3"
+        };
+    }
+    on(f, velocity, scheduledDuration=undefined, scheduledTime=undefined) {
+        const samplerNote = this.keys[f];
+        return super.on(samplerNote, velocity, scheduledDuration, scheduledTime);
+    }
+}
+
 
 class Voice {
     constructor(instrument, autoVoiceLeadingMode="updown") {
@@ -579,6 +606,29 @@ class ChordTriggers {
     }
 }
 
+class DrumTriggers {
+    /* very barebones static class but to match ChordTriggers. Might be nice to
+    leave room for manual drum input later on maybe. */
+    static on(drumSampleName, velocity, scheduledDuration=undefined, scheduledTime=undefined) {
+        /* probably won't need "key off" handling for a drum machine input
+         * trigger handler, so this will always take a duration argument.
+         * (actually we just don't need it in this current state of the proj) */
+        MOUSEBOARD_STATE.drummer.on(drumSampleName, velocity, scheduledDuration, scheduledTime);
+    }
+    static off() {
+        MOUSEBOARD_STATE.drummer.off();
+    }
+    static allOff() {
+        MOUSEBOARD_STATE.drummer.off();
+    }
+    static sync() {
+        MOUSEBOARD_STATE.drummer.sync();
+    }
+    static unsync() {
+        MOUSEBOARD_STATE.drummer.unsync();
+    }
+}
+
 const CIRCLE_OF_FIFTHS_12EDO = 
   [ {"label": "F", "cents": 500}
   , {"label": "C", "cents": 0}
@@ -722,6 +772,7 @@ function setup(callbacksAfterwards) {
             "bass": new Chordplayer("ambass", 1, "down") 
             /* this is just a bass note, played an octave below the 'chord' chordplayer */
         };
+        MOUSEBOARD_STATE.drummer = new BossaDrumKit(); /* NEW */
         start_prompt_screen.remove();
 
         setupBasspads();
