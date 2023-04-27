@@ -8,10 +8,22 @@ keyboard, inspired by the touchscreen autokalimba https://foldr.moe/harp. Featur
 
 ---
 
-## Basic usage
+## **New**: Bossa Nova Autocomposer mode
+The mouseboard now features an Autocomposer feature which generates bossa nova music ad infinitum. (Using the Autocomposer doesn't require keyboard interaction; it plays well on a mobile device too.)
+- When the Autocomposer plays, the bass note pads become clickable (tappable). Clicking on a pad while the Autocomposer plays will "request" a new key for the Autocomposer to try to smoothly move to. It will queue up bars with chord progressions in order to modulate to each requested key in order.
+- This queue is displayed, showing new bars calculated each time the user requests a key center. Every four beats, one queued bar is popped from the queue and played. If there is nothing queued, a holding pattern plays. Detailed info on the current bar's progression type and voicings is displayed also.
+- A Random button is available for requesting random keys without having to click around on the circle of fifths layout. This makes the Autocomposer surprisingly addictive... (where will the Autocomposer take me next!!)
+- This definitely would not be complete without a bossa nova drum track. The drum instruments used are from SNES games! (specifically, the kick is from "Waterworld", the shaker is from "Ken Griffey Jr's Winning Run", and the stick is from "Super Bomberman 3".)
+
+Other new things added since Manual mode:
+- New timbres. The chord sound is now an FM electric piano, and the bass an AM bass that somewhat resembles an acoustic bass.
+- A piano layout for the bass note pads!
+- Responsive-design CSS gymnastics (the UI should look passable on most phone/tablet screens now! Still todo: a touchscreen panel of chord buttons in place of keyboard input, for mobile devices to work with Manual mode.)
+
+## Manual mode: Basic usage
 - Select a bass note by hovering your mouse over the note pads. Play that bass and premade chords built on it using the computer keyboard.
 
-- Press **z** to play the selected bass note; press one of the voicing buttons (currently available: **x, c, v, s, d, f, g, w, e, r, t**) to play a chord voicing (a set of intervals) on top of that bass note. The **z** bass button can be held or released independently from the voicing buttons.
+- Press **z** to play the selected bass note; press one of the voicing buttons (currently available: **x, c, v, b, s, d, f, g, h, q, w, e, r, t, y**) to play a chord voicing (a set of intervals) on top of that bass note. The **z** bass button can be held or released independently from the voicing buttons.
     - For instance, **s** alone plays the minor 9th chord voicing of the current bass (which plays four tones: a minor 3rd, perfect 5th, minor 7th, major 9th above the root). Pressing **z+s** plays the minor 9th with the bass note (an octave below) included too. 
     - A full list of voicings is available in the instrument's interface.
     - *Recommended finger position*: ring or pinky on the **z**, and the rest of the fingers pivot around it to reach the voicing buttons, which are nearby.
