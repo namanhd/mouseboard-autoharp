@@ -4,7 +4,7 @@
 
 const BASE_FREQ = 261.625/2;
 const N_VOICES_PER_INSTRUMENT = 4;
-const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = [-6, 2];
+const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = [-8, 2];
 
 /* "application state", things that can change over the course of execution */
 const MOUSEBOARD_STATE = 
@@ -268,18 +268,21 @@ class Voice {
             this.lastPlayedCents = cents;
             return cents;
         }
-        // if (cents === 0) {
-        //     /* don't voicelead whenever the root note is requested */
-        //     return cents;
-        // }
         /* allow +-1200 range in the given cents, whichever one is closest
          * to the last played value. However, clamp to be between -2400 and 
          * +2400  of the original requested cents */
-        let tries;
-        if (overrideVoiceLeadingMode === "updown" || this.autoVoiceLeadingMode === "updown") {
+        let tries, voiceLeadingModeToUse;
+        if (overrideVoiceLeadingMode !== undefined) {
+            voiceLeadingModeToUse = overrideVoiceLeadingMode;
+        }
+        else {
+            voiceLeadingModeToUse = this.autoVoiceLeadingMode;
+        }
+
+        if (voiceLeadingModeToUse === "updown") {
             tries = [cents, cents-1200, cents+1200];
         } 
-        else if (overrideVoiceLeadingMode === "down" || this.autoVoiceLeadingMode === "down") {
+        else if (voiceLeadingModeToUse === "down") {
             tries = [cents, cents-1200];
         } 
         else {
@@ -307,7 +310,7 @@ class Voice {
     }
 
     on(cents, velocity=1, doAutoVoiceLeading=true, scheduledDuration=undefined, scheduledTime=undefined) {
-        if (!doAutoVoiceLeading) {
+        if (doAutoVoiceLeading === false) {
             this.timesOctaveShifted = 0;
         }
         cents = doAutoVoiceLeading ? this.autoVoiceLeading(cents, doAutoVoiceLeading) : cents;
@@ -458,12 +461,12 @@ const KEYBOARD_TO_VOICING_MAP =
   , "x": {"name": "m7", "bass": [], "chord": [0, 300, 700, 1000], "voicelead":true, "hidden": false}
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true, "hidden": false}
   , "v": {"name": "M7", "bass": [], "chord": [0, 400, 700, 1100], "voicelead": true, "hidden": false}
-  , "b": {"name": "sus13", "bass": [], "chord": [-200, 0, 1700-1200, 2100-1200], "voicelead": "down", "hidden": false}
+  , "b": {"name": "sus13", "bass": [], "chord": [-200, 0, 1700-1200, 2100-1200], "voicelead": true, "hidden": false}
   , "n": {"name": "M7c", "bass": [], "chord": [-100, 0, 400, 700], "voicelead": true, "hidden": false} /* inverted M7 with fifth on top */
   , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true, "hidden": false}
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}
-  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": true, "hidden": false}
+  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": "down", "hidden": false}
   , "h": {"name": "m7♭5", "bass": [], "chord": [0, 600, 1000, 300+1200], "voicelead": true, "hidden": false}
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
