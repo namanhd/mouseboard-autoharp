@@ -4,7 +4,6 @@
 
 const BASE_FREQ = 261.625/2;
 const N_VOICES_PER_INSTRUMENT = 4;
-const VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES = [-8, 2];
 
 /* "application state", things that can change over the course of execution */
 const MOUSEBOARD_STATE = 
@@ -253,76 +252,15 @@ class BossaDrumKit extends ToneInstrument {
 
 
 class Voice {
-    constructor(instrument, autoVoiceLeadingMode="updown") {
+    constructor(instrument) {
         this.instrument = instrument;
-
         this.lastPlayedCents = undefined;
-        this.autoVoiceLeadingMode = autoVoiceLeadingMode;
-        this.timesOctaveShifted = 0; 
-        /* if we octave shifted in the same direction for too long we'll reset
-        voiceleading */
-        /* can change envelope settings here maybe */
     }
-    autoVoiceLeading(cents, overrideVoiceLeadingMode=undefined) {
-        if (this.lastPlayedCents === undefined) {
-            this.lastPlayedCents = cents;
-            return cents;
-        }
-        /* allow +-1200 range in the given cents, whichever one is closest
-         * to the last played value. However, clamp to be between -2400 and 
-         * +2400  of the original requested cents */
-        let tries, voiceLeadingModeToUse;
-        if (overrideVoiceLeadingMode !== undefined) {
-            voiceLeadingModeToUse = overrideVoiceLeadingMode;
-        }
-        else {
-            voiceLeadingModeToUse = this.autoVoiceLeadingMode;
-        }
-
-        if (voiceLeadingModeToUse === "updown") {
-            tries = [cents, cents-1200, cents+1200];
-        } 
-        else if (voiceLeadingModeToUse === "down") {
-            tries = [cents, cents-1200];
-        } 
-        else {
-            return cents;
-        }
-        
-        const distancesToLastPlayedCents = tries.map(c => Math.abs(c - this.lastPlayedCents));
-        let result = tries[distancesToLastPlayedCents.indexOf(Math.min(...distancesToLastPlayedCents))];
-        result = Math.min(Math.max(result, cents - 1200), cents + 2400);
-        if (result < 0 || result > 2100) {
-            return cents;
-        }
-        if (result < cents) {
-            this.timesOctaveShifted--;
-        }
-        else if (result > cents) {
-            this.timesOctaveShifted++;
-        }
-        if (this.timesOctaveShifted > VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES[1] ||
-            this.timesOctaveShifted < VOICE_LEADING_OCTAVE_SHIFT_MAX_NTIMES[0]) {
-            this.resetVoiceLeadingMemory()
-            return cents;
-        }
-        return result;
-    }
-
-    on(cents, velocity=1, doAutoVoiceLeading=true, scheduledDuration=undefined, scheduledTime=undefined) {
-        if (doAutoVoiceLeading === false) {
-            this.timesOctaveShifted = 0;
-        }
-        cents = doAutoVoiceLeading ? this.autoVoiceLeading(cents, doAutoVoiceLeading) : cents;
-        this.lastPlayedCents = cents;
+    on(cents, velocity=1, scheduledDuration=undefined, scheduledTime=undefined) {
         this.instrument.on(BASE_FREQ * centsToRatio(cents), velocity, scheduledDuration, scheduledTime);
     }
     off() {
         this.instrument.off();
-    }
-    resetVoiceLeadingMemory() {
-        this.lastPlayedCents = undefined;
-        this.timesOctaveShifted = 0;
     }
 }
 
@@ -336,6 +274,7 @@ class Chordplayer {
         
         this.nVoices = nVoices;
         this.voices = new Array(nVoices);
+        this.autoVoiceLeadingMode = autoVoiceLeadingMode;
         this.bassCents = 0;
         for (let i = 0; i < nVoices; i++) {
             let synth;
@@ -351,12 +290,143 @@ class Chordplayer {
             else if (synthName === "ambass") {
                 synth = new AMBass();
             }
-            this.voices[i] = new Voice(synth, autoVoiceLeadingMode);
+            this.voices[i] = new Voice(synth);
         }
         this.currentlyPlayingDueToTrigger = undefined; 
         /* can be a keyboard key name or maybe touch button ID if present.
         * Needed to know which chordplayers to turn off when a key is released.
         * */
+
+        /* voice leading state */
+
+        /* the point of this one is to not change/recalculate a voiceled voicing
+         * if the same trigger key /voicing is requested >=twice in a row, and
+         * instead just reuse lastPlayedCents */
+        this.lastRequestedKeyForVoiceleadPurposes = undefined;
+        this.lastPlayedCents = undefined;
+    }
+    autoVoiceLeading(cents, overrideVoiceLeadingMode=undefined) {
+        if (this.lastPlayedCents === undefined) {
+            return cents;
+        }
+        let voiceLeadingModeToUse = 
+            overrideVoiceLeadingMode ? overrideVoiceLeadingMode : this.autoVoiceLeadingMode;
+        /* we know that lastPlayedCents is sorted from low to high. build a 2D
+         * array where the rows (subarrays) are each previous note and the cols
+         * (elems in the subarrays) are each incoming note. Each cell [r][c] is
+         * the min voiceleading distance from new note c to prev note r. We then
+         * greedily select the min of these [r][c] values from top voice to
+         * bottom
+         */
+        const downOnly = voiceLeadingModeToUse === "down";
+        
+        const a = Array(this.nVoices);
+        for (let r = 0; r < this.nVoices; r++) {
+            a[r] = { "minDists": Array(this.nVoices), "centValues": Array(this.nVoices) };
+            for (let c = 0; c < this.nVoices; c++) {
+                const itvl = cents[c];
+                if (itvl === undefined) {
+                    a[r].minDists[c] = undefined;
+                    a[r].centValues[c] = undefined;
+                    continue;
+                }
+                const last = this.lastPlayedCents[r];
+                if (last === undefined) {
+                    a[r].minDists[c] = 0;
+                    a[r].centValues[c] = itvl;
+                    continue;
+                }
+                const tries = downOnly ? [itvl-1200, itvl]
+                                       : [itvl-1200, itvl, itvl+1200];
+                const dists = tries.map(c => Math.abs(c - last));
+                const minDist = Math.min(...dists);
+                a[r].minDists[c] = minDist;
+                a[r].centValues[c] = tries[dists.indexOf(minDist)];
+            }
+        }
+
+        /* then scan through from highest prev-note to lowest */
+        const assigned = Array(this.nVoices).fill(false);
+        const result = Array(this.nVoices);
+        for (let r = this.nVoices-1; r >= 0; r--) {
+            if (r === this.nVoices - 1) {
+                // first iteration, pick the centValue with the smallest of all minDists
+                const i = a[r].minDists.indexOf(Math.min(...a[r].minDists.filter(u => u !== undefined)));
+                result[r] = a[r].centValues[i];
+                assigned[i] = true;
+            }
+            else {
+                const argsortedIndices = Array.from(a[r].minDists.entries()).sort((a, b) => a[1] - b[1]).map(tup => tup[0]);
+                for (const i in argsortedIndices) {
+                    if (assigned[i]) {
+                        continue;
+                    }
+                    else {
+                        result[r] = a[r].centValues[i];
+                        assigned[i] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        /* heuristic: postprocess the results */
+        result.sort((a, b) => a - b);
+        const nNotes = result.filter(u => u !== undefined).length;
+        const topNote = result[nNotes-1];
+        const mean = result.reduce((a, x) => a + x) / nNotes;
+        let nAdjustments = 0;
+        const N_MAX_ADJUSTMENTS = 3;
+        for (const i in result) {
+            const c = result[i];
+            const voiceDown = () => {
+                result[i] -= 1200;
+            }
+            const voiceUp = () => {
+                if ((c + 1200) < (topNote + 1000)) {
+                    result[i] += 1200; 
+                }
+            }
+            const diff = (i > 0 && c !== undefined) ? c - result[i-1] : undefined;
+            if ((c < 0) || (mean < 800 && c < 900)) {
+                /* heuristic: avoid too many notes that are too low (negative,
+                or mean cents too low) */
+                voiceUp();
+                // console.log("heur: avoid low");
+            }
+            else if (mean > 1800 && (c > 2100)) {
+                /* heuristic: avoid too many notes too high (mean too high,
+                demote some super high outliers) */
+                voiceDown();
+                // console.log("heur: avoid high");
+            }
+            else if (diff <= 100 && (c % 1200 !== 0)) {
+                /* heuristic: avoid <minor 2nds unless it's between the major 7
+                and the I */
+                if (c > 1200) {
+                    // console.log("heur: avoid m2 down")
+                    voiceDown();
+                }
+                else {
+                    // console.log("heur: avoid m2 up")
+                    voiceUp();
+                }
+            }
+            else if ((c - mean) > 1200) {
+                /* heuristic: adjust voices that are too outlying compared to the
+                mean cents */
+                // console.log("heur: dist to mean down ")
+                voiceDown();
+            }
+            else if ((mean - c) > 1200) {
+                // console.log("heur: dist to mean up")
+                voiceUp();
+            }
+            if (nAdjustments >= N_MAX_ADJUSTMENTS) {
+                break;
+            }
+        }
+        return result;
     }
     on(triggeredBy, intervals, bassCents=undefined, velocity=1, doAutoVoiceLeading=true, scheduledDuration=undefined, scheduledTime=undefined) {
         if (intervals.length === 0 || this.currentlyPlayingDueToTrigger !== undefined) {
@@ -376,12 +446,24 @@ class Chordplayer {
         if (bassCents === undefined) {
             bassCents = this.bassCents;
         }
+        let centsToPlay = intervals.map(u => u === undefined ? u : u + bassCents).sort((a, b) => a - b);
+        if (triggeredBy === this.lastRequestedKeyForVoiceleadPurposes) {
+            centsToPlay = this.lastPlayedCents;
+        }
+        else {
+            centsToPlay = doAutoVoiceLeading ? this.autoVoiceLeading(centsToPlay, doAutoVoiceLeading) : centsToPlay; 
+        }
+        
+        
         for (let i = 0; i < this.nVoices; i++) {
-            const interval = intervals[i];
-            if (interval !== undefined) {
-                this.voices[i].on(bassCents + interval, velocity, doAutoVoiceLeading, scheduledDuration, scheduledTime);
+            const cents = centsToPlay[i];
+            if (cents !== undefined) {
+                this.voices[i].on(cents, velocity, scheduledDuration, scheduledTime);
             }
         }
+        this.lastPlayedCents = centsToPlay;
+        this.lastPlayedCents.sort((a, b) => a - b);
+        this.lastRequestedKeyForVoiceleadPurposes = triggeredBy;
         return true;
     }
     off(triggeredBy) {
@@ -405,12 +487,20 @@ class Chordplayer {
             this.voices[i].instrument.unsync();
         }
     }
+    setBass(cents) {
+        this.bassCents = cents;
+        this.lastRequestedKeyForVoiceleadPurposes = undefined;
+    }
+    resetVoiceLeadingMemory() {
+        this.lastRequestedKeyForVoiceleadPurposes = undefined;
+        this.lastPlayedCents = undefined;
+    }
 }
 
 function globallySelectNewBass(circleOfFifthsIndex) {
     const {label, cents} = circleOfFifthsQueryFn(circleOfFifthsIndex);
-    MOUSEBOARD_STATE.chordplayers.bass.bassCents = cents;
-    MOUSEBOARD_STATE.chordplayers.chord.bassCents = cents;
+    MOUSEBOARD_STATE.chordplayers.bass.setBass(cents);
+    MOUSEBOARD_STATE.chordplayers.chord.setBass(cents);
     
     MOUSEBOARD_STATE.bassNoteSelected.label = label;
     MOUSEBOARD_STATE.bassNoteSelected.cents = cents; 
@@ -460,18 +550,18 @@ const KEYBOARD_TO_VOICING_MAP =
   , "a": {"name": "", "bass": [-1700], "chord": [], "voicelead": false, "hidden": true}
   , "x": {"name": "m7", "bass": [], "chord": [0, 300, 700, 1000], "voicelead":true, "hidden": false}
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true, "hidden": false}
-  , "v": {"name": "M7", "bass": [], "chord": [0, 400, 700, 1100], "voicelead": true, "hidden": false}
-  , "b": {"name": "sus13", "bass": [], "chord": [-200, 0, 1700-1200, 2100-1200], "voicelead": true, "hidden": false}
-  , "n": {"name": "M7c", "bass": [], "chord": [-100, 0, 400, 700], "voicelead": true, "hidden": false} /* inverted M7 with fifth on top */
+  , "v": {"name": "M7", "bass": [], "chord": [0, 1200+400, 700, 1100], "voicelead": true, "hidden": false}
+  , "b": {"name": "sus13", "bass": [], "chord": [1000, 0, 1700, 2100], "voicelead": true, "hidden": false}
+  , "n": {"name": "M7c", "bass": [], "chord": [-100, 0, 400, 700], "voicelead": true, "hidden": true} /* inverted M7 with fifth on top */
   , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true, "hidden": false}
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}
-  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": "down", "hidden": false}
-  , "h": {"name": "m7♭5", "bass": [], "chord": [0, 600, 1000, 300+1200], "voicelead": true, "hidden": false}
+  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": true, "hidden": false}
+  , "h": {"name": "m7♭5", "bass": [], "chord": [0, 600, 1000, 300+1200], "voicelead": false, "hidden": false}
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
-  , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": false, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
+  , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": true, "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": true, "hidden": false}
   , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": true, "hidden": false} /* alt */
   , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
   }
@@ -564,8 +654,8 @@ class ChordTriggers {
             else {
                 if (eKey === "`") {
                     /* reset voice leading */
-                    MOUSEBOARD_STATE.chordplayers.chord.voices.forEach(voice => voice.resetVoiceLeadingMemory());
-                    MOUSEBOARD_STATE.chordplayers.bass.voices.forEach(voice => voice.resetVoiceLeadingMemory());
+                    MOUSEBOARD_STATE.chordplayers.chord.resetVoiceLeadingMemory();
+                    MOUSEBOARD_STATE.chordplayers.bass.resetVoiceLeadingMemory();
                 }
             }
         }
