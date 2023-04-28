@@ -153,6 +153,7 @@ class ElecPiano extends ToneInstrument {
     constructor() {
         super();
         this.volumeNode = new Tone.Volume(-2).toDestination();
+        this.filterNode = new Tone.Filter(2200, "lowpass").connect(this.volumeNode);
         this.synth = new Tone.FMSynth({
             "harmonicity":3,
             "modulationIndex": 14,
@@ -174,7 +175,7 @@ class ElecPiano extends ToneInstrument {
                 "sustain": 0,
                 "release": 0.2
             }
-        }).connect(this.volumeNode);
+        }).connect(this.filterNode);
     }
 } 
 
@@ -553,7 +554,6 @@ const KEYBOARD_TO_VOICING_MAP =
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true, "hidden": false}
   , "v": {"name": "M7", "bass": [], "chord": [0, 1200+400, 700, 1100], "voicelead": true, "hidden": false}
   , "b": {"name": "sus13", "bass": [], "chord": [1000, 0, 1700, 2100], "voicelead": true, "hidden": false}
-  , "n": {"name": "M7c", "bass": [], "chord": [-100, 0, 400, 700], "voicelead": true, "hidden": true} /* inverted M7 with fifth on top */
   , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true, "hidden": false}
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}

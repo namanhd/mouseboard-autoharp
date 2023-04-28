@@ -8,7 +8,6 @@ const __K =
   , "d7" : "c"
   , "M7": "v"
   , "s13": "b"
-  , "M7c": "v"
   , "m9": "s"
   , "d9": "d"
   , "M9": "f"
@@ -40,7 +39,6 @@ const COMPOSER_STATE =
   , "cooldowns": 
       { "bouncyTritoneSubTwoFiveOne": 0
       , "alternateHoldPattern": 1
-      , "invertedM7revert": 2
       } /* cooldowns so that we don't do this stuff too often */
     // melodyplayer: todo... meowsynth player that plays melody on top of the chord progy.
   , "currentlyPlayingBarName": ""
@@ -72,16 +70,6 @@ function makeBossaHoldingPattern(voicingButton, allowVariant=true) {
           use the d13 variant (variation=2) */
         variation = chooseFrom(1, 1, 1, 1, 1, 1, 2);
         COMPOSER_STATE.cooldowns.alternateHoldPattern = 1;
-    }
-    if (voicingButton === __K.M7c) {
-        if (COMPOSER_STATE.cooldowns.invertedM7revert > 0) {
-            COMPOSER_STATE.cooldowns.invertedM7revert--;
-        }
-        else {
-            COMPOSER_STATE.preferredHoldPatternVoicing = __K.M7;
-            voicingButton = __K.M7;
-            COMPOSER_STATE.cooldowns.invertedM7revert = 2;
-        }
     }
     const patternName = "Hold";
     const patternVariantName = "variant " + (variation+1);
@@ -307,7 +295,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             }
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = (domVoicing2 !== __K.d7s5 && domVoicing2 !== __K.d7b9 && domVoicing2 !== __K.aug);
-            COMPOSER_STATE.preferredHoldPatternVoicing = ((domVoicing2 === __K.d9 || domVoicing2 === __K.d7s5) ? __K.M9 : __K.M7c);
+            COMPOSER_STATE.preferredHoldPatternVoicing = __K.M9;
             return paddingBar.concat(bar);
         }
         else if (variationChoice === 2) {
@@ -343,7 +331,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
             COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne = 2;
-            COMPOSER_STATE.preferredHoldPatternVoicing = ((domVoicing0 === __K.d9 || domVoicing0 === __K.d7s5) ? __K.M9 : __K.M7c);
+            COMPOSER_STATE.preferredHoldPatternVoicing = __K.M9;
             return [bar];
         }
     } /* end bassCOFShift === 2 */
@@ -811,7 +799,6 @@ function stopAutoComposer() {
     /* reset cooldowns to initial values */
     COMPOSER_STATE.cooldowns.alternateHoldPattern = 1;
     COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne = 0;
-    COMPOSER_STATE.cooldowns.invertedM7revert = 2;
     ChordTriggers.unsync(); /* return manual control over trigger inputs */
     ChordTriggers.allOff(); /* force turn off any hanging notes */
     DrumTriggers.unsync();
