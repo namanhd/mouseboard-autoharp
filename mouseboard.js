@@ -48,7 +48,8 @@ function updateChordDisplay() {
     voicingElem.append(MOUSEBOARD_STATE.info_voicing);
     let longVoicing = false;
     if (MOUSEBOARD_STATE.info_voicing.length > 3) {
-        voicingElem.style.fontSize = "calc(min(80pt, 7vw))";
+        voicingElem.style.fontSize = "calc(min(80pt, 12vw))";
+        voicingElem.style.lineHeight = "1.1rem";
         longVoicing = true;
     }
 
@@ -57,7 +58,7 @@ function updateChordDisplay() {
     }
     else {
         if (longVoicing) {
-            playingBassElem.style.fontSize = "calc(min(80pt, 7vw))";
+            playingBassElem.style.fontSize = "calc(min(80pt, 12vw))";
         }
         chordSymbolDisplay.append(impliedBassElem, voicingElem, (MOUSEBOARD_STATE.info_bassNotePlaying === "" ? "" : "/"), playingBassElem);
     }
@@ -561,9 +562,9 @@ const KEYBOARD_TO_VOICING_MAP =
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": true, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": true, "hidden": false}
-  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": true, "hidden": false} /* alt */
-  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
+  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false} /* alt */
+  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": false, "hidden": false}
   }
 
 class ChordTriggers {
