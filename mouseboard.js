@@ -307,12 +307,32 @@ class Chordplayer {
         this.lastRequestedKeyForVoiceleadPurposes = undefined;
         this.lastPlayedCents = undefined;
     }
+    wholeChordOctaveAdjustment(cents) {
+        if (this.lastPlayedCents === undefined) {
+            return cents;
+        }
+        /* this is a weaker substitute for autoVoiceLeading for voicings that do
+         * not otherwise use AVL. this will just octave-shift the whole
+         * chord such that the top note diff is minimimzed; distances between
+         * chord tones remains as specified in the voicing dict. Assumes cents
+         * is sorted */
+        const topNoteIdx = cents.filter(u => u !== undefined).length - 1;
+        const lastPlayedTopCents = (cs => cs[cs.length - 1])(this.lastPlayedCents.filter(u => u !== undefined));
+        const tries = [cents.map(c => c === undefined ? c : c + 1200), cents, cents.map(c => c === undefined ? c : c - 1200)]
+        const topNoteDists = tries.map(cs => Math.abs(cs[topNoteIdx] - lastPlayedTopCents));
+        const result = tries[topNoteDists.indexOf(Math.min(...topNoteDists))];
+        return result;
+    }
     autoVoiceLeading(cents, overrideVoiceLeadingMode=undefined) {
         if (this.lastPlayedCents === undefined) {
             return cents;
         }
         let voiceLeadingModeToUse = 
             overrideVoiceLeadingMode ? overrideVoiceLeadingMode : this.autoVoiceLeadingMode;
+        
+        if (voiceLeadingModeToUse === "keep") { // keep intervals, shift octaves for all voices
+            return this.wholeChordOctaveAdjustment(cents);
+        }
         /* we know that lastPlayedCents is sorted from low to high. build a 2D
          * array where the rows (subarrays) are each previous note and the cols
          * (elems in the subarrays) are each incoming note. Each cell [r][c] is
@@ -377,8 +397,6 @@ class Chordplayer {
         const nNotes = result.filter(u => u !== undefined).length;
         const topNote = result[nNotes-1];
         const mean = result.reduce((a, x) => a + x) / nNotes;
-        let nAdjustments = 0;
-        const N_MAX_ADJUSTMENTS = 3;
         for (const i in result) {
             const c = result[i];
             const voiceDown = () => {
@@ -405,14 +423,10 @@ class Chordplayer {
             else if (diff <= 100 && (c % 1200 !== 0)) {
                 /* heuristic: avoid <minor 2nds unless it's between the major 7
                 and the I */
-                if (c > 1200) {
-                    // console.log("heur: avoid m2 down")
-                    voiceDown();
-                }
-                else {
-                    // console.log("heur: avoid m2 up")
-                    voiceUp();
-                }
+                // console.log("heur: avoid m2")
+                voiceDown(); 
+                /* no voiceUp option here, that would make an augmented octave
+                 * which is even crunchier... */
             }
             else if ((c - mean) > 1200) {
                 /* heuristic: adjust voices that are too outlying compared to the
@@ -423,9 +437,6 @@ class Chordplayer {
             else if ((mean - c) > 1200) {
                 // console.log("heur: dist to mean up")
                 voiceUp();
-            }
-            if (nAdjustments >= N_MAX_ADJUSTMENTS) {
-                break;
             }
         }
         return result;
@@ -562,9 +573,9 @@ const KEYBOARD_TO_VOICING_MAP =
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": true, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": false, "hidden": false}
-  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": false, "hidden": false} /* alt */
-  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": false, "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": "keep", "hidden": false}
+  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": "keep", "hidden": false} /* alt */
+  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": "keep", "hidden": false}
   }
 
 class ChordTriggers {
