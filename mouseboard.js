@@ -10,7 +10,7 @@ const MOUSEBOARD_STATE =
   { "basspads":  undefined
   , "chordplayers": undefined
   , "drummer": undefined /* NEW (after autocomposer) a bossa nova drum kit */
-  , "bassNoteSelected": {"label": "C", "cents": 0, "circleOfFifthsIndex": 1}
+  , "bassNoteSelected": {"label": "F", "cents": 500, "circleOfFifthsIndex": 0}
     /* ^ this isn't shown in chorddisplay but is used in setting the other ones
      * correctly. This will also be edited live by the autocomposer to play its
      * chords. */
@@ -277,7 +277,7 @@ class Chordplayer {
         this.nVoices = nVoices;
         this.voices = new Array(nVoices);
         this.autoVoiceLeadingMode = autoVoiceLeadingMode;
-        this.bassCents = 0;
+        this.bassCents = MOUSEBOARD_STATE.bassNoteSelected.cents;
         for (let i = 0; i < nVoices; i++) {
             let synth;
             if (synthName === "meowsynth") {
