@@ -84,7 +84,7 @@
             background-color:rgb(222, 237, 255);
             border-radius: 50%;
         }
-        .basspad-circle:hover, .basspad-circle.basspad-highlight {
+        .basspad-circle:hover, .basspad-circle.pad-highlight {
             width:calc(min(170px, 20vh, 14vw));
             height:calc(min(170px, 20vh, 14vw));
             background-color: rgb(244, 255, 253);
@@ -95,10 +95,10 @@
             background-color:#ffebb0;
             border-radius: 10%;
         }
-        .basspad-tonnetz:hover, .basspad-tonnetz.basspad-highlight {
+        .basspad-tonnetz:hover, .basspad-tonnetz.pad-highlight {
             z-index: 4;
-            width:calc(min(170px, 20vh, 14vw));
-            height:calc(min(170px, 20vh, 14vw));
+            width:calc(min(170px, 19vh, 13.7vw));
+            height:calc(min(170px, 19vh, 13.7vw));
             background-color: #fffada;
         }
         .basspad-chromatic-whitekey {
@@ -107,7 +107,7 @@
             background-color:ivory;
             border-radius: 10px;
         }
-        .basspad-chromatic-whitekey:hover, .basspad-chromatic-whitekey.basspad-highlight {
+        .basspad-chromatic-whitekey:hover, .basspad-chromatic-whitekey.pad-highlight {
             z-index: 3;
             width:calc(min(130px, 13vh, 9vw));
             height:calc(min(330px, 41vh, 32vw));
@@ -120,14 +120,14 @@
             border-radius: 10px;
             z-index: 4;
         }
-        .basspad-chromatic-blackkey:hover, .basspad-chromatic-blackkey.basspad-highlight {
+        .basspad-chromatic-blackkey:hover, .basspad-chromatic-blackkey.pad-highlight {
             z-index: 6;
             width:calc(min(65px, 8vh, 6vw));
             height:calc(min(250px, 33vh, 26vw));
             background-color: lightcyan;
         }
 
-        .basspad {
+        .basspad, .voicingpad {
             z-index: 3;
             font-size: calc(min(30pt, 5vh, 5vw));
             float:left;
@@ -148,13 +148,26 @@
             -webkit-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
         }
+        .voicingpad {
+            cursor: pointer;
+            position: static;
+            float: none;
+            transform: none;
+            background-color: #dcffdc;
+            border-radius: 10px;
+            margin: 2px;
+        }
+        .voicingpad:active, .voicingpad.pad-clicked {
+            background-color: rgb(190, 242, 255);
+            transform: scale(0.95);
+        }
         .basspad-long-transitions {
             transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.3s, box-shadow 0.2s, -webkit-box-shadow 0.2s, -moz-box-shadow 0.2s, transform 0.2s, -webkit-transform 0.2s, width 0.2s, height 0.2s;
         }
         .basspad-short-transitions {
             transition: top 0.3s, left 0.3s, border-radius 0.3s, background-color 0.15s, box-shadow 0.15s, width 0.2s, height 0.2s;
         }
-        .basspad:hover {
+        .basspad:hover, .basspad.pad-highlight {
             box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
             -webkit-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
             -moz-box-shadow: 1px 12px 30px -8px rgba(0,0,0,0.73);
@@ -162,10 +175,10 @@
         .basspad-during-autocompose {
             cursor: pointer;
         }
-        .basspad-during-autocompose:hover, .basspad-during-autocompose.basspad-highlight {
+        .basspad-during-autocompose:hover, .basspad-during-autocompose.pad-highlight {
             background-color:rgb(190, 242, 255);
         }
-        .basspad-during-autocompose:active, .basspad-during-autocompose.basspad-clicked {
+        .basspad-during-autocompose:active, .basspad-during-autocompose.pad-clicked, .basspad.pad-clicked {
             background-color:rgb(190, 242, 255);
             transform: translate(-50%) scale(0.925);
             -webkit-transform: translate(-50%) scale(0.925);
@@ -216,8 +229,8 @@
 
         #chord-symbol-display {
             color:lightgray;
-            font-size: calc(min(100pt, 25vw));
-            min-height: calc(min(122pt, 27vw));
+            font-size: calc(min(100pt, 26vh, 25vw));
+            min-height: calc(min(122pt, 32vh, 27vw));
             width: 99%;
             vertical-align: middle;
             text-align: center;
@@ -228,18 +241,38 @@
             line-height:1.05em;
         }
 
-        .info-panel {
-            width: calc(max(50vh, 33vw));
+        .panel {
+            width: calc(max(300px, 33vw));
+            position: relative;
             padding-left: 6px;
             padding-right: 6px;
             margin-left: auto;
             margin-right: auto;
             max-height: 85vh;
         }
-        .info-panel-scrollable-section {
+        .panel-scrollable-section {
             max-height: 55%;
             overflow-y: auto;
+            scrollbar-gutter: stable both-edges;
             overflow-x: hidden;
+        }
+        #panel-voicingpads {
+            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: auto repeat(4, 1fr);
+            top: -30px;
+            right: -38px;
+            z-index: 5;
+            width: calc(max(50vh, 40vw));
+            max-height: 0vh;
+            box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+            -webkit-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+            -moz-box-shadow: 1px 6px 20px -8px rgba(0,0,0,0.73);
+        }
+        #panel-voicingpads.collapsible-content-active {
+            max-height: 90vh;
+            min-height: calc(min(85vh, 100vw));
         }
 
         ul#list-chord-keyboard-mapping {
@@ -251,7 +284,11 @@
         #debugbox {
             font-family:'Courier New', Courier, monospace;
         }
-
+        .voicingpads-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
         .collapsible-container {
             display:block;
             margin-top: 1em;
@@ -396,13 +433,18 @@
 
 <body>
 
-<h2 style="display:inline">mouseboard</h2>, autoharp and bossa nova machine <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a>
+<span style="font-size: calc(max(1.2vh, 1.2vw))"><h2 style="display:inline; font-size: calc(max(1.9vh, 1.9vw));">mouseboard</h2>, autoharp and bossa nova machine <br> inspired by <a href="https://foldr.moe/harp">foldr.moe/harp</a></span>
 
 
 <div class="container">
     <div id="circle-of-fifths"><div id="circle-of-fifths-bg" class="cof-bg-during-manual"></div></div>
 
-    <div class="info-panel">
+    <div class="panel" id="panel-primary">
+        <div class="panel">
+            <div id="panel-voicingpads" class="collapsible-content voicingpads-container">
+                <button class="toggle-button button-shadow" onclick="toggleVoicingPads()" style="margin-bottom: 10px; grid-row: 1/1; grid-column: 1/9">Hide touchscreen voicing buttons 📱</button>
+            </div>
+        </div>
         <div id="chord-symbol-display"></div>
         <div class="collapsible-container">
             <div class="autocomposer-ui-row">
@@ -414,37 +456,33 @@
                 <button id="autocomposer-random-button" class="autocomposer-button autocomposer-child button-shadow"><i class="fas fa-dice"></i></button>
             </div>
         </div>
-        <div class="info-panel-scrollable-section">
+        <div class="panel-scrollable-section">
             <div class="collapsible-container">
                 <button class="toggle-button button-shadow" onclick="layoutBasspads()">Toggle between Circle, Tonnetz, and Piano layouts 🔁</button>
             </div>
-            <!-- <div class="collapsible-container">
-                <button class="toggle-button button-shadow" onclick="toggleVoicingPads()">Toggle between Circle, Tonnetz, and Piano layouts 🔁</button>
-            </div> -->
             <div class="collapsible-container">
-                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Manual mode: How to play 🌱</button>
+                <button class="toggle-button button-shadow" onclick="toggleVoicingPads()">Show touchscreen voicing buttons 📱</button>
+            </div>
+            <div class="collapsible-container">
+                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Info: Manual mode 👇</button>
                 <div class="collapsible-content">
                     <div>
+                        <p><b>Touch: </b>Tap "Show touchscreen voicing buttons" to show the chord voicing buttons (landscape orientation recommended). Tap on notes on the circle of fifths to play and select a bass for the voicings.</p> 
                         <p>
-                        Hover over the pads to select a bass note. Use the keyboard to play chord voicings on the current bass note.
+                        <b>Mouse & keyboard: </b> Hover the mouse over the pads to select a bass note. Use the keyboard to play chord voicings on the current bass.
                         Press <b>z</b> to play just the current bass note; you can hold/release it independently of the voicing buttons. 
-                        The chord name will appear in the box above.
                         </p>
-                        
                         <p>
-                            Here is a list of the available voicings.
+                            Keyboard mapping for voicings:
                             <ul id="list-chord-keyboard-mapping"></ul>
                             There is automatic voice leading (i.e. the voices will adjust their octave
                             to be closest to their last played note). This can sometimes go wrong, though. Press the backtick
                             key (`) to reset the voice leading memory. 
                         </p>
-                        <p>
-                            There are two circle-of-fifths-based layouts and one piano layout available for the bass note pads.
-                        </p>
                     </div>
                 </div>
             </div>
-            <div class="collapsible-container">
+            <!-- <div class="collapsible-container">
                 <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Manual mode: What to play 🎼</button>
                 <div class="collapsible-content">
                     <ul>
@@ -455,9 +493,9 @@
                         <li><b>Play around with the Autocomposer</b> to get ideas for chord progressions to play by hand!</li>
                     </ul>
                 </div>
-            </div>
+            </div> -->
             <div class="collapsible-container">
-                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>Autocomposer mode 🤖</button>
+                <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-down collapsible-button-caret"></i>Info: Autocomposer mode 🤖</button>
                 <div class="collapsible-content collapsible-content-active">
                     <p>
                         <p><strong>Let the Autocomposer generate for you an infinite stream of bossa nova! </strong></p>

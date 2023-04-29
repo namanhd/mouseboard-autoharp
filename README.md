@@ -1,7 +1,8 @@
 # mouseboard-autoharp
 
-An "autoharp" (chord-playing instrument with chord buttons) made for mouse and
-keyboard, inspired by the touchscreen autokalimba https://foldr.moe/harp. Featuring automatic voice leading!! Easily play jazzed-up progressions and accompany your singing or whistling.
+An "autoharp" (chord-playing instrument with chord buttons), inspired by the
+touch autokalimba https://foldr.moe/harp. Featuring automatic voice leading!!
+Easily play jazzed-up progressions and accompany your singing or whistling.
 
 ---
 *Instructions are also available in-app, but here are some more detailed notes.*
@@ -9,34 +10,53 @@ keyboard, inspired by the touchscreen autokalimba https://foldr.moe/harp. Featur
 ---
 
 ## **New**: Bossa Nova Autocomposer mode
-The mouseboard now features an Autocomposer feature which generates bossa nova music ad infinitum. (Using the Autocomposer doesn't require keyboard interaction; it plays well on a mobile device too.)
-- When the Autocomposer plays, the bass note pads become clickable (tappable). Clicking on a pad while the Autocomposer plays will "request" a new key for the Autocomposer to try to smoothly move to. It will queue up bars with chord progressions in order to modulate to each requested key in order.
-- This queue is displayed, showing new bars calculated each time the user requests a key center. Every four beats, one queued bar is popped from the queue and played. If there is nothing queued, a holding pattern plays. Detailed info on the current bar's progression type and voicings is displayed also.
-- A Random button is available for requesting random keys without having to click around on the circle of fifths layout. This makes the Autocomposer surprisingly addictive... (where will the Autocomposer take me next!!)
-- This definitely would not be complete without a bossa nova drum track. The drum instruments used are from SNES games! (specifically, the kick is from "Waterworld", the shaker is from "Ken Griffey Jr's Winning Run", and the stick is from "Super Bomberman 3".)
+The mouseboard now features an Autocomposer feature which generates bossa nova
+music ad infinitum.
+- When the Autocomposer plays, the bass note pads become clickable (tappable).
+  Clicking on a pad while the Autocomposer plays will "request" a new key for
+  the Autocomposer to try to smoothly move to. It will queue up bars with chord
+  progressions in order to modulate to each requested key in order.
+- This queue is displayed, showing new bars calculated each time the user
+  requests a key center. Every four beats, one queued bar is popped from the
+  queue and played. If there is nothing queued, a holding pattern plays.
+  Detailed info on the current bar's progression type and voicings is displayed
+  also.
+- A Random button is available for requesting random keys without having to
+  click around on the circle of fifths layout. This makes the Autocomposer
+  surprisingly addictive... (where will the Autocomposer take me next!!)
+- This definitely would not be complete without a bossa nova drum track. The
+  drum instruments used are from SNES games! (specifically, the kick is from
+  "Waterworld", the shaker is from "Ken Griffey Jr's Winning Run", and the stick
+  is from "Super Bomberman 3".)
 
 Other new things added since Manual mode:
-- New timbres. The chord sound is now an FM electric piano, and the bass an AM bass that somewhat resembles an acoustic bass.
-- A piano layout for the bass note pads!
-- Responsive-design CSS gymnastics (the UI should look passable on most phone/tablet screens now! Still todo: a touchscreen panel of chord buttons in place of keyboard input, for mobile devices to work with Manual mode.)
+- New timbres. The chord sound is now an FM electric piano, and the bass an AM
+  bass that somewhat resembles an acoustic bass.
+- A piano layout for the bass note pads
+- Onscreen voicing buttons for touch displays, plus responsive-design CSS
+  gymnastics (everything should look and feel passable on most phone/tablet
+  screens now hopefully!)
 
 ### Autocomposer technical notes
+- All rules-based, no AI/ML needed 😋
 - I hand-wrote a handful of **individual patterns**, incorporating randomness
 where multiple chord voicings, bass shifts, or rhythm patterns may be
-compatible. These choices were my own, so the resulting music definitely is
-influenced by how I usually write bossa nova specifically and chord progressions
-in general.
+compatible. These choices were my own and greatly inform how the music sounds,
+so you could probably call this an "interactive composition" rather than an
+"automatic composer".
 - The **sequencing of modulating patterns** to reach arbitrary key centers is
-algorithmic; the handwritten patterns cover only a few possible key transitions,
-so the code takes over and breaks the requested key transitions into appropriate
-smaller blocks that do have written patterns and modifies them to fit each
-possible key transition, taking care to insert resolutions where natural. The main algorithm for producing bars given a key shift
-is a recursive, 550-line monstrosity; very fun to peruse.
-- **Automatic voice leading** turns out to play a huge role in making this sound
-convincing and less mechanical. The latest auto voice leading algorithm is done
-by the chordplayers, and not individual voices, so oversight of all playing
-voices is available for the smoothest possible voice leading. There are lots of
-heuristics to make the voice leading work well, and more tweaking is called for.
+automated, but rules-based; the handwritten patterns cover only a few possible
+key transitions, so the code takes over and breaks the requested key transitions
+into appropriate smaller blocks that do have written patterns and modifies them
+to fit each possible key transition, taking care to insert resolutions where
+natural. The main algorithm for producing bars given a key shift is pretty
+hefty, pretty much a recursive, 550-line chunk of music theory; very fun to
+peruse.
+- **Automatic voice leading** works wonders in making this sound convincing. The
+latest auto voice leading algorithm is done by the chordplayers, and not
+individual voices, so oversight of all playing voices is available for the
+smoothest possible voice leading. There are lots of heuristics to make the voice
+leading work well, and more tweaking is called for.
 - My personal record for leaving this thing playing continuously in the
 background is somewhere over 1200 bars.
 

@@ -19,6 +19,7 @@ const MOUSEBOARD_STATE =
   , "info_voicing": ""
     /* layout config */
   , "basspadLayout": "circle"
+  , "voicingPadsShown": false
     /* this is just for disabling transform transitions on touch, bc theyre laggy */
   , "isTouchscreen": false
   };
@@ -534,24 +535,28 @@ class Basspad {
         this.hoverEventEnabled = true; 
 
         const pointerEnter = e => {
+            this.select(this);
             if (e.pointerType !== "mouse") {
                 if (this.hoverEventEnabled) {
-                    this.element.classList.add("basspad-highlight");
+                    this.element.classList.add("pad-clicked");
+                    ChordTriggers.on("z", true);
                 }
                 else {
-                    this.element.classList.add("basspad-clicked");
+                    this.element.classList.add("pad-clicked");
                 }
             }
-            this.select(this);
         }
         const pointerLeave = e => {
             if (e.pointerType !== "mouse") {
-                this.element.classList.remove("basspad-highlight");
-                this.element.classList.remove("basspad-clicked");
+                this.element.classList.remove("pad-highlight");
+                this.element.classList.remove("pad-clicked");
+                ChordTriggers.off("z", true);
             }
         }
         this.element.addEventListener("pointerenter", pointerEnter);
+        this.element.addEventListener("touchstart", e => e.preventDefault());
         this.element.addEventListener("pointerleave", pointerLeave);
+        this.element.addEventListener("pointercancel", pointerLeave);
     }
 
     select(self) {
@@ -592,9 +597,9 @@ const KEYBOARD_TO_VOICING_MAP =
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": true, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": "keep", "hidden": false}
-  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": "keep", "hidden": false} /* alt */
-  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": "keep", "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": true, "hidden": false}
+  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": true, "hidden": false} /* alt */
+  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
   }
 
 class ChordTriggers {
@@ -632,6 +637,7 @@ class ChordTriggers {
             if (triggerSpec && ((!calledManually && !triggerSpec.hidden) || (calledManually))) {
                 const bassTurnedOn = MOUSEBOARD_STATE.chordplayers.bass.on(eKey, triggerSpec.bass, undefined, 1.0, false, scheduledDuration, scheduledTime);
                 const chordTurnedOn = MOUSEBOARD_STATE.chordplayers.chord.on(eKey, triggerSpec.chord, undefined, 0.8, triggerSpec.voicelead, scheduledDuration, scheduledTime); /* lower velocity so we dont clip so horribly*/
+                const wasCalledForScheduling = (scheduledTime !== undefined && scheduledDuration !== undefined);
                 if (chordTurnedOn) {
                     /* chord info updates as a callback. If this on() call is to
                      * schedule a future note-On, then we also schedule the
@@ -650,7 +656,7 @@ class ChordTriggers {
                         MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = l;
                     };
                     /* if this on() call is for scheduling w/ t and duration */                    
-                    if (calledManually) {
+                    if (wasCalledForScheduling) {
                         const offFn = () => {
                             MOUSEBOARD_STATE.info_voicing = "";
                             MOUSEBOARD_STATE.info_bassNoteImpliedByVoicing = "";
@@ -667,7 +673,7 @@ class ChordTriggers {
                     const onFn = (l) => {
                         MOUSEBOARD_STATE.info_bassNotePlaying = l;
                     };
-                    if (calledManually) {
+                    if (wasCalledForScheduling) {
                         const offFn = () => {
                             MOUSEBOARD_STATE.info_bassNotePlaying = "";
                         }
@@ -678,7 +684,7 @@ class ChordTriggers {
                         onFn(MOUSEBOARD_STATE.bassNoteSelected.label);
                     }
                 }
-                if (!calledManually){
+                if (!wasCalledForScheduling){
                     updateChordDisplay();
                 }
             }
@@ -787,6 +793,55 @@ function normalizeCircleOfFifthsIndex12EDO(i) {
 
 let circleOfFifthsQueryFn = queryCircleOfFifths12EDO; /* change this out */
 let normalizeCircleOfFifthsIndex = normalizeCircleOfFifthsIndex12EDO; /* changeable too */
+
+/* for touchscreen use of manual mode */
+function setupVoicingPads() {
+    const panel = document.getElementById("panel-voicingpads");
+    let c = 1;
+    let r = 2;
+    for (const key in KEYBOARD_TO_VOICING_MAP) {
+        const triggerSpec = KEYBOARD_TO_VOICING_MAP[key];
+        const name = triggerSpec.name;
+        const isBass = triggerSpec.bass.length !== 0;
+
+        const voicingPadElem = document.createElement("div");
+        voicingPadElem.classList.add("voicingPad");
+        voicingPadElem.append(name === "" ? "bass" : name);
+        voicingPadElem.style.gridRow = r + "/" + r;
+        voicingPadElem.style.gridColumn = c +  "/" + (c + (isBass ? 0 : 2));
+        if (isBass) {
+            voicingPadElem.style.fontSize = "calc(min(15pt, 3vh, 3vw))";
+            c++;
+        }
+        else {
+            c += 2;
+            if (c >= 8) {
+                c = 1;
+                r++;
+            }
+        }
+        const on = e => {
+            voicingPadElem.classList.add("pad-clicked");
+            ChordTriggers.on(key, true);
+        }
+        const off = e => {
+            voicingPadElem.classList.remove("pad-clicked");
+            ChordTriggers.off(key, true);
+        }
+        voicingPadElem.addEventListener("pointerdown", on);
+        // voicingPadElem.addEventListener("pointerleave", off);
+        // voicingPadElem.addEventListener("pointercancel", off);
+        voicingPadElem.addEventListener("pointerup", off);
+        voicingPadElem.addEventListener("touchstart", e => e.preventDefault());
+        panel.append(voicingPadElem);
+    }
+    return panel;
+}
+
+function toggleVoicingPads() {
+    MOUSEBOARD_STATE.voicingPadsShown = !MOUSEBOARD_STATE.voicingPadsShown;
+    document.getElementById("panel-voicingpads").classList.toggle("collapsible-content-active");
+}
 
 /* lay out the basspads in either a circle of fifths or a tonnetz grid */
 function layoutBasspads(style=undefined) {
@@ -904,6 +959,7 @@ function setup(callbacksAfterwards) {
         start_prompt_screen.remove();
 
         setupBasspads();
+        setupVoicingPads();
         ChordTriggers.init(); /* start listening for keyboard triggers */
         callbacksAfterwards();
         if (MOUSEBOARD_STATE.isTouchscreen) {
@@ -921,7 +977,11 @@ function setup(callbacksAfterwards) {
     const listChordKeyboardMapping = document.getElementById("list-chord-keyboard-mapping");
     for (const [key, voicing] of Object.entries(KEYBOARD_TO_VOICING_MAP)) {
         if (!voicing.hidden) {
-            listChordKeyboardMapping.append((e=> {e.append(key + ": " + (voicing.name === "" ? "(bass only)" : voicing.name)); return e;})(document.createElement("li")));
+            const li = document.createElement("li");
+            const b = document.createElement("b");
+            b.append(key);
+            li.append(b, ": ", (voicing.name === "" ? "(bass only)" : voicing.name));
+            listChordKeyboardMapping.append(li);
         }
     }   
 }
