@@ -137,14 +137,25 @@ function makeBossaModulationPatternsByTwoSmallerOnes(bassCOFShift, variation, sp
     return bar1.concat(bar2);
 }
 
+function addBassCOFShiftOffsetToEvent(event, bassCOFShiftToAdd) {
+    if (event.bassCOFShift !== undefined) {
+        event.bassCOFShift += bassCOFShiftToAdd;
+    }
+    else {
+        event.bassCOFShift = bassCOFShiftToAdd;
+    }
+}
+
 function makeBossaModulationPatterns(bassCOFShift, variation) {
     if (COMPOSER_STATE.needResolutionBeforeNextBar) {
         /* if a previous bar indicated that it needs a resolution immediately,
          * schedule that before moving onto the next modulation pattern */
         COMPOSER_STATE.needResolutionBeforeNextBar = false;
-        const hereYouAre = makeBossaModulationPatterns(0, 0); /* do not use variant2 hold */
-        const nowGoAhead = makeBossaModulationPatterns(bassCOFShift, variation);
-        return nowGoAhead === undefined ? undefined : hereYouAre.concat(nowGoAhead);
+        if (!COMPOSER_STATE.weJustResolved) {
+            const hereYouAre = makeBossaModulationPatterns(0, 0); /* do not use variant2 hold */
+            const nowGoAhead = makeBossaModulationPatterns(bassCOFShift, variation);
+            return nowGoAhead === undefined ? undefined : hereYouAre.concat(nowGoAhead);
+        }
     }
     bassCOFShift = normalizeCircleOfFifthsIndex(bassCOFShift);
     if (bassCOFShift === 0) {
@@ -400,7 +411,8 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
         else if (variationChoice === 1) {
             const five = makeBossaModulationPatterns(1, 1); /* shift=1 var=1 forces the d13 */
-            five[0].events[6].bassCOFShift = 4; /* use the V-I pattern but change the V to be the V of our target */
+            addBassCOFShiftOffsetToEvent(five[0].events[6], 4);
+            /* use the V-I pattern but change the V to be the V of our target */
             five[0].netCircleOfFifthsRotation = 5;
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
@@ -416,7 +428,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
         else if (variationChoice  === 1) {
             const five = makeBossaModulationPatterns(1, 1); /* shift=1 var=1 forces the d13 */
-            five[0].events[6].bassCOFShift = 5;
+            addBassCOFShiftOffsetToEvent(five[0].events[6], 5);
             five[0].netCircleOfFifthsRotation = 6;
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
@@ -433,7 +445,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             tritone sub targeting the tritone, not the V, so we don't use the
             tritone sub variant of shift=1 here. Also the d13 variant doesnt
             sound good so leave that out too */
-            five[0].events[five[0].events.length-1].bassCOFShift = 7;
+            addBassCOFShiftOffsetToEvent(five[0].events[five[0].events.length-1], 6);
             five[0].netCircleOfFifthsRotation = 7;
             five[0].name = "♭II"
             COMPOSER_STATE.weJustResolved = false;
@@ -451,7 +463,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         else if (variationChoice === 1) {
             /* bVI-V */
             const five = makeBossaModulationPatterns(1, chooseFrom(0, 1, 2, 3)); /* shift=1 var=1 forces the d13 */
-            five[0].events[6].bassCOFShift = 7;
+            addBassCOFShiftOffsetToEvent(five[0].events[6], 7);
             five[0].netCircleOfFifthsRotation = 8;
             five[0].name = "♭VI-V"
             COMPOSER_STATE.weJustResolved = true;
@@ -544,7 +556,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             /* also a d13 as above, but leads with the current tonic still */
             const five = makeBossaModulationPatterns(1, 1); /* shift=1 var=1 forces the d13 */
             const idxLastRecursedBar = 0; // or maybe five.length-1;
-            five[idxLastRecursedBar].events[6].bassCOFShift = 9;
+            addBassCOFShiftOffsetToEvent(five[idxLastRecursedBar].events[6], 9);
             five[idxLastRecursedBar].netCircleOfFifthsRotation = 10;
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
@@ -557,8 +569,9 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         const variationChoice = (variation % nVariations);
         if (variationChoice === 0) {
             const twoFiveOne = makeBossaModulationPatterns(2, chooseFrom(0, 1, 2));
-            twoFiveOne[0].events.unshift({"bassCOFShift": 9});
-            twoFiveOne[0].netCircleOfFifthsRotation = 11;
+            const idxLastRecursedBar = twoFiveOne.length - 1;
+            twoFiveOne[idxLastRecursedBar].events.unshift({"bassCOFShift": 9});
+            twoFiveOne[idxLastRecursedBar].netCircleOfFifthsRotation = 11;
             COMPOSER_STATE.weJustResolved = false;
             COMPOSER_STATE.needResolutionBeforeNextBar = true;
             return twoFiveOne;
