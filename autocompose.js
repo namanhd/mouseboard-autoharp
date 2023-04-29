@@ -151,11 +151,9 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         /* if a previous bar indicated that it needs a resolution immediately,
          * schedule that before moving onto the next modulation pattern */
         COMPOSER_STATE.needResolutionBeforeNextBar = false;
-        if (!COMPOSER_STATE.weJustResolved) {
-            const hereYouAre = makeBossaModulationPatterns(0, 0); /* do not use variant2 hold */
-            const nowGoAhead = makeBossaModulationPatterns(bassCOFShift, variation);
-            return nowGoAhead === undefined ? undefined : hereYouAre.concat(nowGoAhead);
-        }
+        const hereYouAre = makeBossaModulationPatterns(0, 0); /* do not use variant2 hold */
+        const nowGoAhead = makeBossaModulationPatterns(bassCOFShift, variation);
+        return nowGoAhead === undefined ? undefined : hereYouAre.concat(nowGoAhead);
     }
     bassCOFShift = normalizeCircleOfFifthsIndex(bassCOFShift);
     if (bassCOFShift === 0) {
@@ -272,7 +270,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
                 COMPOSER_STATE.cooldowns.bouncyTritoneSubTwoFiveOne--;
             }
             /* ii-V-I. Variation 0 is m7 or m9, variation 1 is m7b5 */
-            const subdomVoicing = (variationChoice === 1 && COMPOSER_STATE.preferredHoldPatternVoicing !== __K.s13) ? __K.m7b5 : COMPOSER_STATE.preferredHoldPatternVoicing === __K.M9 ? __K.m9 : chooseFrom(__K.m9, __K.m7, __K.m9);
+            const subdomVoicing = (variationChoice === 1 && COMPOSER_STATE.preferredHoldPatternVoicing !== __K.s13) ? chooseFrom(__K.m7b5, __K.m9, __K.m9) : COMPOSER_STATE.preferredHoldPatternVoicing === __K.M9 ? __K.m9 : chooseFrom(__K.m9, __K.m7, __K.m9);
             const domVoicing0 = subdomVoicing === __K.m7b5 ? __K.d7b9 : chooseFrom(subdomVoicing === __K.m9 ? __K.d9 : __K.d7, __K.alt, __K.d7b9); /* m7 to 7, m9 to 9 */
             const domVoicing1 = chooseFrom(__K.alt, domVoicing0, (domVoicing0 === __K.d7b9 ? domVoicing0 : __K.d7s5));
             const domVoicing2 = (domVoicing1 === __K.alt ? __K.d7b9 : (domVoicing1 === __K.d7b9 ? chooseFrom(__K.aug, domVoicing1) : domVoicing1));
