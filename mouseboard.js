@@ -529,13 +529,32 @@ class Basspad {
         this.label = label;
         this.cents = cents;
         this.element = element;  /* the html element for this basspad*/
-        this.element.addEventListener("mouseenter", (e => {e.preventDefault(); this.hover(this)}));
-        this.element.addEventListener("touchstart", (e => {e.preventDefault(); this.hover(this)}));
         /* while autocomposer is playing, hovering should not do anything, only
         click and touchstart should */
         this.hoverEventEnabled = true; 
+
+        const pointerEnter = e => {
+            if (e.pointerType !== "mouse") {
+                if (this.hoverEventEnabled) {
+                    this.element.classList.add("basspad-highlight");
+                }
+                else {
+                    this.element.classList.add("basspad-clicked");
+                }
+            }
+            this.select(this);
+        }
+        const pointerLeave = e => {
+            if (e.pointerType !== "mouse") {
+                this.element.classList.remove("basspad-highlight");
+                this.element.classList.remove("basspad-clicked");
+            }
+        }
+        this.element.addEventListener("pointerenter", pointerEnter);
+        this.element.addEventListener("pointerleave", pointerLeave);
     }
-    hover(self) {
+
+    select(self) {
         if (!self.hoverEventEnabled) {
             return;
         }

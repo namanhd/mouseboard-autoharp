@@ -84,7 +84,7 @@
             background-color:rgb(222, 237, 255);
             border-radius: 50%;
         }
-        .basspad-circle:hover {
+        .basspad-circle:hover, .basspad-circle.basspad-highlight {
             width:calc(min(170px, 20vh, 14vw));
             height:calc(min(170px, 20vh, 14vw));
             background-color: rgb(244, 255, 253);
@@ -95,7 +95,7 @@
             background-color:#ffebb0;
             border-radius: 10%;
         }
-        .basspad-tonnetz:hover {
+        .basspad-tonnetz:hover, .basspad-tonnetz.basspad-highlight {
             z-index: 4;
             width:calc(min(170px, 20vh, 14vw));
             height:calc(min(170px, 20vh, 14vw));
@@ -107,7 +107,7 @@
             background-color:ivory;
             border-radius: 10px;
         }
-        .basspad-chromatic-whitekey:hover {
+        .basspad-chromatic-whitekey:hover, .basspad-chromatic-whitekey.basspad-highlight {
             z-index: 3;
             width:calc(min(130px, 13vh, 9vw));
             height:calc(min(330px, 41vh, 32vw));
@@ -120,7 +120,7 @@
             border-radius: 10px;
             z-index: 4;
         }
-        .basspad-chromatic-blackkey:hover {
+        .basspad-chromatic-blackkey:hover, .basspad-chromatic-blackkey.basspad-highlight {
             z-index: 6;
             width:calc(min(65px, 8vh, 6vw));
             height:calc(min(250px, 33vh, 26vw));
@@ -140,6 +140,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
             transform: translate(-50%, 0);
             -webkit-transform: translate(-50%, 0);
             box-shadow: 1px 12px 14px -8px rgba(0,0,0,0.73);
@@ -160,10 +162,11 @@
         .basspad-during-autocompose {
             cursor: pointer;
         }
-        .basspad-during-autocompose:hover {
+        .basspad-during-autocompose:hover, .basspad-during-autocompose.basspad-highlight {
             background-color:rgb(190, 242, 255);
         }
-        .basspad-during-autocompose:active {
+        .basspad-during-autocompose:active, .basspad-during-autocompose.basspad-clicked {
+            background-color:rgb(190, 242, 255);
             transform: translate(-50%) scale(0.925);
             -webkit-transform: translate(-50%) scale(0.925);
         }
@@ -415,6 +418,9 @@
             <div class="collapsible-container">
                 <button class="toggle-button button-shadow" onclick="layoutBasspads()">Toggle between Circle, Tonnetz, and Piano layouts 🔁</button>
             </div>
+            <!-- <div class="collapsible-container">
+                <button class="toggle-button button-shadow" onclick="toggleVoicingPads()">Toggle between Circle, Tonnetz, and Piano layouts 🔁</button>
+            </div> -->
             <div class="collapsible-container">
                 <button class="toggle-button button-shadow collapsible-button"><i class="fa fa-caret-right collapsible-button-caret"></i>Manual mode: How to play 🌱</button>
                 <div class="collapsible-content">
