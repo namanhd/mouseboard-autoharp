@@ -409,7 +409,7 @@ class Chordplayer {
                 }
             }
             const diff = (i > 0 && c !== undefined) ? c - result[i-1] : undefined;
-            if ((c < 0) || (mean < 800 && c < 900)) {
+            if ((c < 0) || (mean < 1000 && c <= 700)) {
                 /* heuristic: avoid too many notes that are too low (negative,
                 or mean cents too low) */
                 voiceUp();
@@ -597,9 +597,9 @@ const KEYBOARD_TO_VOICING_MAP =
   , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": true, "hidden": false}
-  , "r": {"name": "7♭9", "bass": [], "chord": [0, 400, 1000, 1300], "voicelead": true, "hidden": false}
-  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": true, "hidden": false} /* alt */
-  , "y": {"name": "7♯5", "bass": [], "chord": [0, 800, 1000, 1200+400], "voicelead": true, "hidden": false}
+  , "r": {"name": "7♭9", "bass": [], "chord": [undefined, 400, 1000, 1300], "voicelead": true, "hidden": false}
+  , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 1200, 1000, 1500], "voicelead": true, "hidden": false} /* alt */
+  , "y": {"name": "7♯5", "bass": [], "chord": [undefined, 800, 1000, 1600], "voicelead": true, "hidden": false}
   }
 
 class ChordTriggers {
