@@ -2,7 +2,8 @@
 /* like autokalimba but specifically for mouse and keyboard
   rather than touch, and has automatic voice leading */
 
-const BASE_FREQ = 261.625/2;
+// 1 octave below middle C
+const BASE_FREQ = 440 * Math.pow(2, -(9 + 12) / 12);
 const N_VOICES_PER_INSTRUMENT = 4;
 
 /* "application state", things that can change over the course of execution */
