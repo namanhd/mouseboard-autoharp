@@ -69,6 +69,20 @@ function updateChordDisplay() {
     impliedBassElem.style.color = "lightgray";
 }
 
+const BROWSER_OUTPUT_VALUE = "browser-output";
+
+function getCurrentOutput() {
+    let output_selector = document.getElementById("output-selector");
+    if (output_selector.value == BROWSER_OUTPUT_VALUE) {
+        return null;
+    }
+
+    if (!MOUSEBOARD_STATE.midiAccess) {
+        return null;
+    }
+
+    return MOUSEBOARD_STATE.midiAccess.outputs.get(output_selector.value);
+}
 
 /* timbre */
 /* useful docs about time https://github.com/Tonejs/Tone.js/wiki/Time 
@@ -130,7 +144,85 @@ class Meowsynth {
 }
 */
 class ToneInstrument {
+    constructor() {
+        this.scheduled_events = [];
+        this.on_notes = [];
+        this.note_id = 0;
+    }
+
     on(f, velocity, scheduledDuration=undefined, scheduledTime=undefined) {
+        let output = getCurrentOutput();
+        if (output) {
+            let channel, program, note, midiVelocity;
+            if (this.constructor.name == "BossaDrumKit") {
+                channel = 9;
+                program = 0;
+                if (f == "A3") {
+                    note = 31; // GM sticks
+                } else if (f == "A2") {
+                    note = 82; // GM shaker
+                } else  {
+                    if (f != "A1") debugger;
+                    note = 35; // GM acoustic bass drum
+                }
+            } else {
+                channel = 0;
+                if (this.constructor.name == "AMBass") {
+                    program = 32; // GM acoustic bass
+                } else {
+                    if (this.constructor.name != "ElecPiano") debugger;
+                    program = 4; // GM electric piano 1
+                }
+
+                note = Math.round(Math.log(f / 440) / Math.log(2) * 12 + 69);
+            }
+
+            midiVelocity = Math.round(127 * velocity);
+            if (midiVelocity > 127) {
+                midiVelocity = 127;
+            }
+
+            if ((scheduledDuration === undefined) || (scheduledTime === undefined)) {
+                /* only used in manual mode, we should expect an eventual "off" call */
+                output.send([0xc0 | channel, program]);
+                output.send([0x90 | channel, note, midiVelocity]);
+                this.on_notes.push([this.note_id, output, channel, note]);
+                this.note_id += 1
+            }
+            else {
+                let delayMS = (scheduledTime - Tone.Transport.seconds) * 1000;
+                let durationMS = scheduledDuration.toSeconds() * 1000;
+
+                let obj = this;
+
+                let timeout_id;
+                timeout_id = setTimeout(function () {
+                    obj.scheduled_events.splice(obj.scheduled_events.findIndex((elt) => timeout_id == elt), 1);
+
+                    output.send([0xc0 | channel, program]);
+                    output.send([0x90 | channel, note, midiVelocity]);
+                    let my_note_id = obj.note_id;
+                    obj.on_notes.push([my_note_id, output, channel, note]);
+                    obj.note_id += 1;
+
+                    let timeout_id2;
+                    timeout_id2 = setTimeout(function () {
+                        obj.scheduled_events.splice(obj.scheduled_events.findIndex((elt) => timeout_id2 == elt), 1);
+
+                        output.send([0x80 | channel, note, 0]);
+                        obj.on_notes.splice(obj.on_notes.findIndex(
+                            (elt) => elt[0] == my_note_id, 1));
+                    }, durationMS);
+
+                    obj.scheduled_events.push(timeout_id2);
+                }, delayMS);
+
+                this.scheduled_events.push(timeout_id);
+            }
+
+            return;
+        }
+
         if ((scheduledDuration === undefined) || (scheduledTime === undefined)) {
             this.synth.triggerAttack(f, "+0", velocity);    
         }
@@ -140,6 +232,15 @@ class ToneInstrument {
         
     }
     off() {
+        for (let tid of this.scheduled_events) {
+            clearTimeout(tid);
+        }
+        this.scheduled_events = [];
+        for (let [_, output, channel, note]  of this.on_notes) {
+            output.send([0x80 | channel, note, 0]);
+        }
+        this.on_notes = [];
+
         this.synth.triggerRelease("+0");
     }
     sync() {
@@ -945,6 +1046,56 @@ function setupBasspads() {
     layoutBasspads(MOUSEBOARD_STATE.basspadLayout);
 }
 
+function setupOutputSelector() {
+    MOUSEBOARD_STATE.midiAccess = null;
+
+    let output_selector = document.getElementById("output-selector");
+
+    let update_ports = function() {
+        let ma = MOUSEBOARD_STATE.midiAccess;
+
+        let output_value = output_selector.value;
+
+        // clear all midi outputs from option list
+        output_selector.options.length = 0;
+
+        // add default browser audio
+        let doption = document.createElement("option");
+        doption.value = BROWSER_OUTPUT_VALUE;
+        doption.text = "Output: Browser Audio";
+        output_selector.add(doption, null);
+
+        if (!ma) return;
+
+        for (let output of ma.outputs.values()) {
+            let option = document.createElement("option");
+            option.value = output.id;
+            option.text = `Output: MIDI: ${output.name}`;
+            output_selector.add(option, null);
+        }
+
+        output_selector.value = output_value;
+        if (output_selector.selectedIndex < 0) {
+            output_selector.value = BROWSER_OUTPUT_VALUE;
+        }
+    };
+
+    update_ports();
+
+    if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess({
+            software: true,
+        }).then(function (midiAccess) {
+            MOUSEBOARD_STATE.midiAccess = midiAccess;
+
+            // add entries to output menu
+            update_ports();
+
+            midiAccess.addEventListener("statechange", update_ports);
+        });
+    }
+}
+
 function setup(callbacksAfterwards) {
     const start_prompt_screen = document.getElementById("start-prompt-screen");
     start_prompt_screen?.addEventListener("click", async () => {
@@ -984,4 +1135,6 @@ function setup(callbacksAfterwards) {
             listChordKeyboardMapping.append(li);
         }
     }   
+
+    setupOutputSelector();
 }
