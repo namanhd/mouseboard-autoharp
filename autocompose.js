@@ -19,6 +19,8 @@ const __K =
   , "d7b9": "r"
   , "alt": "t"
   , "d7s5": "y"
+  , "min": "m"
+  , "Maj": "n"
   }
 
 
@@ -790,7 +792,7 @@ function startAutoComposer() {
             interpretPatternEvent(event);
         }
     }, "1m", 0);
-    MOUSEBOARD_STATE.basspads.forEach(b => {
+    MOUSEBOARD_STATE.basspads?.forEach(b => {
         b.element.classList.toggle("basspad-during-autocompose");
         b.hoverEventEnabled = false;
     });
@@ -817,12 +819,43 @@ function stopAutoComposer() {
     updateAutoComposerDisplay();
     updateAutoComposerQueueDisplay();
     updateChordDisplay();
-    MOUSEBOARD_STATE.basspads.forEach(b => {
+    MOUSEBOARD_STATE.basspads?.forEach(b => {
         b.element.classList.toggle("basspad-during-autocompose");
         b.hoverEventEnabled = true;
     });
     document.getElementById("autocomposer-info-display").classList.toggle("autocomposer-display-playhead-animated");
     document.getElementById("autocomposer-queue-display").classList.toggle("autocomposer-display-flashing-animated");
+}
+
+function scheduleNewBars(newBars, lastKeyCenterCOFIndexQueued) {
+    if (!newBars) {
+        return;
+    }
+    COMPOSER_STATE.barsQueued.push(...newBars);
+    /* update the queue display with the new queued bar(s). Assumption:
+     * accumulating the net rotations of the queued bars and adding them
+     * to "last" should equal circleOfFifthsIndex. There's a chance I
+     * might make mistakes in teh code and that might not hold, So i'll
+     * just set the lastKeyCenterCOFIndexQueued to the accumulate value
+     */
+    let accumulatedCircleOfFifthsIndex = lastKeyCenterCOFIndexQueued;
+    for (const i in newBars) {
+        const newBar = newBars[i];
+        accumulatedCircleOfFifthsIndex -= newBar.netCircleOfFifthsRotation;
+        updateAutoComposerQueueDisplay(newBar, accumulatedCircleOfFifthsIndex);
+    }
+    /* set to accumulate offsets across all bars queued. Again this
+     * *should* be equivalent to setting this to circleOfFifthsIndex,
+     * but for some reason it not always does. (edit: i've fixed the bug
+     * I think but more may crop up) */
+    COMPOSER_STATE.lastKeyCenterCOFIndexQueued = normalizeCircleOfFifthsIndex(accumulatedCircleOfFifthsIndex);
+    // /* debug debug */
+    // if (normalizeCircleOfFifthsIndex(accumulatedCircleOfFifthsIndex) != circleOfFifthsIndex) {
+    //     console.log("bad! requested COF index " + circleOfFifthsIndex  
+    //     + " not reached by the queued bars (actual net rotation was " 
+    //     + accumulatedCircleOfFifthsIndex + " normalized " + normalizeCircleOfFifthsIndex(accumulatedCircleOfFifthsIndex) + "!) The requested shift was " + (last - circleOfFifthsIndex) + "variation was " + variation);
+    //     console.log(newBars);
+    // }
 }
 
 function setupAutoComposer() {
@@ -842,11 +875,13 @@ function setupAutoComposer() {
             button.style.fontSize = "1.75rem"; 
             stopAutoComposer();
         }
-        cofBg.classList.toggle("cof-bg-during-autocompose");
-        cofBg.classList.toggle("cof-bg-during-manual");
+        if (cofBg) {
+            cofBg.classList.toggle("cof-bg-during-autocompose");
+            cofBg.classList.toggle("cof-bg-during-manual");
+        }
     }
     const playButton = document.getElementById("autocomposer-play-button");
-    playButton.addEventListener("click", _ => togglePlayWithButton(playButton));
+    playButton?.addEventListener("click", _ => togglePlayWithButton(playButton));
 
     /* add click events to the basspads */
     const targetNewKeyFromBasspad = (circleOfFifthsIndex) => {
@@ -861,47 +896,22 @@ function setupAutoComposer() {
             /* update to the last queued key center as a circle-of-fifths index */
             const variation = Math.floor(12 * Math.random());
             const newBars = makeBossaModulationPatterns(last - circleOfFifthsIndex, variation);
-            if (!newBars) {
-                return;
-            }
-            COMPOSER_STATE.barsQueued.push(...newBars);
-            /* update the queue display with the new queued bar(s). Assumption:
-             * accumulating the net rotations of the queued bars and adding them
-             * to "last" should equal circleOfFifthsIndex. There's a chance I
-             * might make mistakes in teh code and that might not hold, So i'll
-             * just set the lastKeyCenterCOFIndexQueued to the accumulate value
-             */
-            let accumulatedCircleOfFifthsIndex = last;
-            for (const i in newBars) {
-                const newBar = newBars[i];
-                accumulatedCircleOfFifthsIndex -= newBar.netCircleOfFifthsRotation;
-                updateAutoComposerQueueDisplay(newBar, accumulatedCircleOfFifthsIndex);
-            }
-            /* set to accumulate offsets across all bars queued. Again this
-             * *should* be equivalent to setting this to circleOfFifthsIndex,
-             * but for some reason it not always does. (edit: i've fixed the bug
-             * I think but more may crop up) */
-            COMPOSER_STATE.lastKeyCenterCOFIndexQueued = normalizeCircleOfFifthsIndex(accumulatedCircleOfFifthsIndex);
-            // /* debug debug */
-            // if (normalizeCircleOfFifthsIndex(accumulatedCircleOfFifthsIndex) != circleOfFifthsIndex) {
-            //     console.log("bad! requested COF index " + circleOfFifthsIndex  
-            //     + " not reached by the queued bars (actual net rotation was " 
-            //     + accumulatedCircleOfFifthsIndex + " normalized " + normalizeCircleOfFifthsIndex(accumulatedCircleOfFifthsIndex) + "!) The requested shift was " + (last - circleOfFifthsIndex) + "variation was " + variation);
-            //     console.log(newBars);
-            // }
+            scheduleNewBars(newBars, last);
         }
     }
-    for (const basspad of MOUSEBOARD_STATE.basspads) {
-        basspad.element.addEventListener("click", e => {
-            e.preventDefault(); 
-            targetNewKeyFromBasspad(basspad.circleOfFifthsIndex);
-        });
-        basspad.element.addEventListener("touchstart", e => {
-            e.preventDefault();
-            targetNewKeyFromBasspad(basspad.circleOfFifthsIndex);
-        });
+    if (MOUSEBOARD_STATE.basspads) {
+        for (const basspad of MOUSEBOARD_STATE.basspads) {
+            basspad.element.addEventListener("click", e => {
+                e.preventDefault(); 
+                targetNewKeyFromBasspad(basspad.circleOfFifthsIndex);
+            });
+            basspad.element.addEventListener("touchstart", e => {
+                e.preventDefault();
+                targetNewKeyFromBasspad(basspad.circleOfFifthsIndex);
+            });
+        }
     }
-    document.getElementById("autocomposer-random-button").addEventListener("click", e => {
+    document.getElementById("autocomposer-random-button")?.addEventListener("click", e => {
         e.preventDefault();
         targetNewKeyFromBasspad(Math.floor(Math.random() * 12));
     });

@@ -702,6 +702,8 @@ const KEYBOARD_TO_VOICING_MAP =
   , "r": {"name": "7♭9", "bass": [], "chord": [undefined, 400, 1000, 1300], "voicelead": true, "hidden": false}
   , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": "keep", "hidden": false} /* alt */
   , "y": {"name": "7♯5", "bass": [], "chord": [undefined, 800, 1000, 1600], "voicelead": true, "hidden": false}
+  , "n": {"name": "M", "bass": [], "chord": [0, 1200+400, 700], "voicelead": true, "hidden": true}
+  , "m": {"name": "m", "bass": [], "chord": [0, 1200+300, 700], "voicelead": true, "hidden": true}
   }
 
 class ChordTriggers {
@@ -899,6 +901,9 @@ let normalizeCircleOfFifthsIndex = normalizeCircleOfFifthsIndex12EDO; /* changea
 /* for touchscreen use of manual mode */
 function setupVoicingPads() {
     const panel = document.getElementById("panel-voicingpads");
+    if (!panel) {
+        return;
+    }
     let c = 1;
     let r = 2;
     for (const key in KEYBOARD_TO_VOICING_MAP) {
@@ -1023,6 +1028,9 @@ function layoutBasspads(style=undefined) {
 
 function setupBasspads() {
     const cof = document.getElementById("circle-of-fifths");
+    if (!cof) {
+        return;
+    }
     const n_basspads = 12;
     const basspads = Array(n_basspads);
     
@@ -1097,7 +1105,7 @@ function setupOutputSelector() {
     }
 }
 
-function setup(callbacksAfterwards) {
+function setup(callbacksAfterwards, alsoSetupChordTriggers=true) {
     const start_prompt_screen = document.getElementById("start-prompt-screen");
     start_prompt_screen?.addEventListener("click", async () => {
         await Tone.start()
@@ -1112,7 +1120,9 @@ function setup(callbacksAfterwards) {
 
         setupBasspads();
         setupVoicingPads();
-        ChordTriggers.init(); /* start listening for keyboard triggers */
+        if (alsoSetupChordTriggers) {
+            ChordTriggers.init(); /* start listening for keyboard triggers */
+        }
         callbacksAfterwards();
         if (MOUSEBOARD_STATE.isTouchscreen) {
             MOUSEBOARD_STATE.basspads.forEach(b => {
@@ -1133,7 +1143,7 @@ function setup(callbacksAfterwards) {
             const b = document.createElement("b");
             b.append(key);
             li.append(b, ": ", (voicing.name === "" ? "(bass only)" : voicing.name));
-            listChordKeyboardMapping.append(li);
+            listChordKeyboardMapping?.append(li);
         }
     }   
 

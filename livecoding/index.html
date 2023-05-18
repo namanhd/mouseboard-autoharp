@@ -1,0 +1,74 @@
+<html>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <title>partimento livecoding</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .container {
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 16%;
+            padding-right: 16%;
+            display: block;
+        }
+        #editor {
+            display: block;
+            width: 100%;
+            height: 8rem;
+            overflow-y: scroll;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 1.76rem;
+        }
+    </style>
+    <script src="https://kit.fontawesome.com/01b4a5c0e9.js" crossorigin="anonymous"></script>
+    <script src="https://tonejs.github.io/build/Tone.js"></script>
+    <script src="../drumsample_blobs.js"></script>
+    <script src="../mouseboard.js"></script>
+    <script src="../autocompose.js"></script>
+    <script src="livecoding.js"></script>
+</head>
+<body>
+<p>
+    <h1 style="display:inline">partimento livecoding</h1><br>
+    with the <a href="../index.html">mouseboard</a> Bossa Nova Autocomposer
+</p>
+<div class="container">
+    <textarea id="editor"></textarea>
+    <br>
+    <div class="container">
+        <button id="livecoding-interpret-button" class="toggle-button button-shadow">Interpret</button>
+    </div>
+    <br>
+    <div class="container">
+        
+        <div id="chord-symbol-display"></div>
+        
+        <div class="collapsible-container">
+            <div class="autocomposer-ui-row">
+                <button id="autocomposer-play-button" class="autocomposer-button autocomposer-child button-shadow fas fa-play"></button>
+                <div id="autocomposer-info-display" class="autocomposer-display autocomposer-child">Press play to start the Bossa Nova Autocomposer</div>
+            </div>
+            <div class="autocomposer-ui-row">
+                <div id="autocomposer-queue-display" class="autocomposer-display autocomposer-child"></div>
+                <button id="autocomposer-random-button" class="autocomposer-button autocomposer-child button-shadow"><i class="fas fa-dice"></i></button>
+            </div>
+        </div>
+        <div class="collapsible-container">
+            <select id="output-selector" class="toggle-button button-shadow">
+            </select>
+        </div>
+    </div>
+</div>
+<button id="start-prompt-screen"><h2>click to start</h2></button>
+<script>
+    setup(setupAutoComposer, false);
+    setupLivecoding();
+</script>
+</body>
+
+</html>
