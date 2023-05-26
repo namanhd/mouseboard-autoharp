@@ -66,10 +66,23 @@ const PARTIMENTI_EXEMPLARS =
             , 9: [ {"key": __K.b}, {"bassCOFShift": 4, "key": __K.M7}, {"bassCOFShift": -4} ] // la 
             , 11: [ {"key": __K.b}, {"bassCOFShift": 4, "key": __K.d7}, {"bassCOFShift": -4} ] // ti
             }
- }
+, "majd":   { 0: [ {"key": __K.b}, {"key": __K.M9} ]
+            , 1: [ {"key": __K.b}, {"key": __K.dim} ]
+            , 2: [ {"key": __K.b}, {"key": __K.m9} ]
+            , 3: [ {"key": __K.b}, {"key": __K.dim} ]
+            , 4: [ {"key": __K.b}, {"bassCOFShift": 4, "key": __K.M9}, {"bassCOFShift": -4}]
+            , 5: [ {"key": __K.b}, {"key": __K.M9} ]
+            , 6: [ {"key": __K.b}, {"key": __K.dim} ]
+            , 7: [ {"key": __K.b}, {"key": __K.d7} ]
+            , 8: [ {"key": __K.b}, {"key": __K.dim} ]
+            , 9: [ {"key": __K.b}, {"bassCOFShift": 4, "key": __K.M9}, {"bassCOFShift": -4} ]
+            , 10: [ {"key": __K.b}, {"key": __K.dim} ]
+            , 11: [ {"key": __K.b}, {"key": __K.d13} ]
+            }
+}
 
 function realizeBassNoteInContext(usingExemplarName, whereInTheBassSequence, bassDegree) {
-    if (usingExemplarName === "roto") {
+    if (usingExemplarName === "roto" || usingExemplarName === "majd") {
         /* rule of the octave */
         return PARTIMENTI_EXEMPLARS[usingExemplarName][bassDegree];
     }
@@ -278,8 +291,14 @@ good examples
 ```
 bass roto do la fa re @so
 bass roto do re la fa so
+bass majd do do# re re# mi fa fa# so la ti do
 ```
 common 4-chordy loop i think
+
+```
+bass majd do do# re re# 
+bass majd mi la re so
+```
 
 ```
 bass roto do la fa so
