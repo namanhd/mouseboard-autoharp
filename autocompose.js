@@ -703,7 +703,7 @@ function updateAutoComposerQueueDisplay(appendingBar=undefined, circleOfFifthsIn
     }
 }
 
-function interpretPatternEvent(event) {
+function interpretPatternEvent(transportTime, event) {
     /* schedule chordtriggers and manipulate MOUSEBOARD_STATE based on our
      * pattern event data. An event can contain both bassCOFShift or key types
      * at the same time. The bass shift is processed first. 
@@ -729,14 +729,14 @@ function interpretPatternEvent(event) {
         and "duration" and "time" (number or Tone.Time) fields. */
         ChordTriggers.on(event.key, true, 
             Tone.Time(event.duration), 
-            SCHEDULING_DELAY_FOR_LAG_PREVENTION + Tone.Transport.seconds + Tone.Time(event.time));
+            SCHEDULING_DELAY_FOR_LAG_PREVENTION + transportTime + Tone.Time(event.time));
     }
     if (event.drum !== undefined) {
         /* schedule the drum sampler note */
         if (MOUSEBOARD_STATE.drummer.loaded) {
             DrumTriggers.on(event.drum, event.drumVel, 
                 Tone.Time(event.duration), 
-                SCHEDULING_DELAY_FOR_LAG_PREVENTION + Tone.Transport.seconds + Tone.Time(event.time));
+                SCHEDULING_DELAY_FOR_LAG_PREVENTION + transportTime + Tone.Time(event.time));
         }
     }
 }
@@ -764,7 +764,16 @@ function startAutoComposer() {
      * play mode */
     COMPOSER_STATE.currentBarTargetingKeyCenterCOFIndex = 
         MOUSEBOARD_STATE.bassNoteSelected.circleOfFifthsIndex;
-    Tone.Transport.scheduleRepeat(_ => {
+    // (2023-05-27) it turns out this is The right way to use the globalTime
+    // param passed into transport callbacks lolol; get the now() at the moment
+    // of the scheduleRepeat() call, and subtract that from the passed-in
+    // globalTime of when the callback is fired! results in sample-accurate
+    // playback (note that globalTime passed in is AudioContext's global time at
+    // the moment the event should fire, but a bit earlier due to lookahead.
+    // note also that web midi does not use AudioContext time, but window
+    // time...)
+    const scheduledAt = Tone.now();
+    Tone.Transport.scheduleRepeat(globalTime => {
         let bar = COMPOSER_STATE.barsQueued.shift();
         updateAutoComposerQueueDisplay(); /* pop the queue in the display too */
         if (!bar) {
@@ -779,7 +788,7 @@ function startAutoComposer() {
             console.log(bar);
         }
         for (const event of bar.events) {
-            interpretPatternEvent(event);
+            interpretPatternEvent(globalTime - scheduledAt, event);
         }
         /* update composer state with the bar's name and modulation amount */
         COMPOSER_STATE.currentlyPlayingBarName = bar.name + " (" + bar.variantName + ")";
@@ -789,7 +798,7 @@ function startAutoComposer() {
 
         /* NEW (after autocomposer) schedule drum pattern */
         for (const event of COMPOSER_STATE.drumPattern) {
-            interpretPatternEvent(event);
+            interpretPatternEvent(globalTime - scheduledAt, event);
         }
     }, "1m", 0);
     MOUSEBOARD_STATE.basspads?.forEach(b => {
