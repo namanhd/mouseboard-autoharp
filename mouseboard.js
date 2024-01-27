@@ -5,6 +5,13 @@
 // 1 octave below middle C
 const BASE_FREQ = 440 * Math.pow(2, -(9 + 12) / 12);
 const N_VOICES_PER_INSTRUMENT = 4;
+/* set this to false if the hosting server's content security policy does not
+ * support data urls */
+const CAN_LOAD_SAMPLES_VIA_DATAURLS = true;
+/* set this to false if the hosting server's content security policy does not
+ * support web workers */
+const CAN_USE_WEBWORKER_CLOCK_SOURCE = true;
+
 
 /* "application state", things that can change over the course of execution */
 const MOUSEBOARD_STATE = 
@@ -337,9 +344,12 @@ class BossaDrumKit extends ToneInstrument {
         this.volumeNode = new Tone.Volume(-12).toDestination();
         this.synth = new Tone.Sampler({
             "urls": {
-                "A1": __DATAURL_PERC_KICK_ELEC,
-                "A2": __DATAURL_PERC_SHAKER,
-                "A3": __DATAURL_PERC_
+                "A1": CAN_LOAD_SAMPLES_VIA_DATAURLS ? __DATAURL_PERC_KICK_ELEC :
+                    decodeFloat32ArrAsB64ToAudioBuffer(__FLOAT32ARR_AS_B64_KICK_ELEC),
+                "A2": CAN_LOAD_SAMPLES_VIA_DATAURLS ? __DATAURL_PERC_SHAKER :
+                    decodeFloat32ArrAsB64ToAudioBuffer(__FLOAT32ARR_AS_B64_SHAKER),
+                "A3": CAN_LOAD_SAMPLES_VIA_DATAURLS ? __DATAURL_PERC_ :
+                    decodeFloat32ArrAsB64ToAudioBuffer(__FLOAT32ARR_AS_B64_PERC_)
             },
             "onload": () => { this.loaded = true; }
         }).connect(this.volumeNode);
@@ -1108,7 +1118,13 @@ function setupOutputSelector() {
 function setup(callbacksAfterwards, alsoSetupChordTriggers=true) {
     const start_prompt_screen = document.getElementById("start-prompt-screen");
     start_prompt_screen?.addEventListener("click", async () => {
-        await Tone.start()
+        await Tone.start();
+        if (!CAN_USE_WEBWORKER_CLOCK_SOURCE) {
+            /* initialize a new context and set the clock source to timeouts
+             * rather than a web worker (neocities new strict CSP doesn't allow
+             * worker-src blob calls) */
+            Tone.context.clockSource = "timeout";
+        }
         console.log("tonejs ready");
         MOUSEBOARD_STATE.chordplayers = {
             "chord": new Chordplayer("elecpiano", N_VOICES_PER_INSTRUMENT, "updown"),
