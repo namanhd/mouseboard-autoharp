@@ -372,6 +372,9 @@ class Voice {
         this.lastPlayedCents = undefined;
     }
     on(cents, velocity=1, scheduledDuration=undefined, scheduledTime=undefined) {
+        // map high cents to lower velocity a bit?
+        if (cents >= 1400)
+            velocity *= 0.8;
         this.instrument.on(BASE_FREQ * centsToRatio(cents), velocity, scheduledDuration, scheduledTime);
     }
     off() {
@@ -700,18 +703,18 @@ const KEYBOARD_TO_VOICING_MAP =
   , "x": {"name": "m7", "bass": [], "chord": [0, 300, 700, 1000], "voicelead":true, "hidden": false}
   , "c": {"name": "7", "bass": [], "chord": [0, undefined, 1000, 1600], "voicelead": true, "hidden": false}
   , "v": {"name": "M7", "bass": [], "chord": [0, 1200+400, 700, 1100], "voicelead": true, "hidden": false}
-  , "b": {"name": "sus13", "bass": [], "chord": [1000, 0, 1700, 2100], "voicelead": true, "hidden": false}
+  , "b": {"name": "13sus", "bass": [], "chord": [1000, 0, 1400, 1700], "voicelead": false, "hidden": false}
   , "s": {"name": "m9", "bass": [], "chord": [1900-1200, 1000, 1400, 1500 ], "voicelead": true, "hidden": false}
   , "d": {"name": "9", "bass": [], "chord": [0,400, 1000, 1400-1200], "voicelead": true, "hidden": false}
   , "f": {"name": "M9", "bass": [], "chord": [1900-1200, 1100, 1400, 1600 ], "voicelead": true, "hidden": false}
-  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": true, "hidden": false}
+  , "g": {"name": "13", "bass": [], "chord": [0, 1000, 1600, 2100], "voicelead": "keep", "hidden": false}
   , "h": {"name": "m7♭5", "bass": [], "chord": [0, 600, 1000, 300+1200], "voicelead": false, "hidden": false}
-  , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": true, "hidden": false}
+  , "q": {"name": "(II/)", "bass": [], "chord": [0, 600, 900, 1400], "voicelead": "keep", "hidden": false}
   , "w": {"name": "dim", "bass": [], "chord": [0, 300, 600, 900], "voicelead": true, "hidden": false}
   , "e": {"name": "aug", "bass": [], "chord": [0, 400, 800, 1200], "voicelead": true, "hidden": false}
   , "r": {"name": "7♭9", "bass": [], "chord": [undefined, 400, 1000, 1300], "voicelead": true, "hidden": false}
   , "t": {"name": "7♯9", "bass": [], "chord": [undefined, 400, 1000, 1500], "voicelead": "keep", "hidden": false} /* alt */
-  , "y": {"name": "7♯5", "bass": [], "chord": [undefined, 800, 1000, 1600], "voicelead": true, "hidden": false}
+  , "y": {"name": "7♯5", "bass": [], "chord": [undefined, 800, 1000, 1600], "voicelead": "keep", "hidden": false}
   , "n": {"name": "M", "bass": [], "chord": [0, 1200+400, 700], "voicelead": true, "hidden": true}
   , "m": {"name": "m", "bass": [], "chord": [0, 1200+300, 700], "voicelead": true, "hidden": true}
   }

@@ -205,7 +205,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
         }
         else if (variationChoice === 2) {
             /* tritone sub */
-            const tritoneSubVoicing = chooseFrom(__K.m7b5, __K.d9, __K.d7s5);
+            const tritoneSubVoicing = chooseFrom(__K.m7b5, __K.d9);
             const holdVoicing = COMPOSER_STATE.preferredHoldPatternVoicing;
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
@@ -217,7 +217,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 6}
               , {"key": __K.b, "time": "0:0:8", "duration": "16n"}
               , {"key": tritoneSubVoicing, "time": "0:0:9", "duration": randomlyLengthen(Tone.Time("16n"))}
-              , {"key": __K.b, "time": "0:0:11", "duration": staccato16n}
+              , {"key": __K.lb, "time": "0:0:11", "duration": staccato16n}
               , {"key": __K.b, "time": "0:0:12", "duration": "8n"}
               , {"key": tritoneSubVoicing, "time": "0:0:12", "duration": "8n"}
               , {"key": __K.b, "time": "0:0:14", "duration": "16n"}
@@ -239,7 +239,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": holdVoicing, "time": "0:0:2", "duration": "16n"}
-              , {"key": __K.b, "time": "0:0:3", "duration": staccato16n}
+              , {"key": __K.lb, "time": "0:0:3", "duration": staccato16n}
               , {"key": __K.b, "time": "0:0:4", "duration": randomlyLengthen(Tone.Time("16n"))}
               , {"key": holdVoicing, "time": "0:0:5", "duration": "16n"}
               , {"key": __K.lb, "time": "0:0:7", "duration": staccato16n}
@@ -248,7 +248,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"key": __K.lb, "time": "0:0:11", "duration": staccato16n}
               , {"key": __K.b, "time": "0:0:12", "duration": "8n"}
               , {"key": __K.alt, "time": "0:0:12", "duration": "8n"}
-              , {"key": __K.d7s5, "time": "0:0:14", "duration": "8n"}
+              , {"key": __K.aug, "time": "0:0:14", "duration": "8n"}
               , {"key": __K.b, "time": "0:0:14", "duration": "16n"}
               , {"bassCOFShift": 1}
               ];
@@ -274,8 +274,8 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
             /* ii-V-I. Variation 0 is m7 or m9, variation 1 is m7b5 */
             const subdomVoicing = (variationChoice === 1 && COMPOSER_STATE.preferredHoldPatternVoicing !== __K.s13) ? chooseFrom(__K.m7b5, __K.m9, __K.m9) : COMPOSER_STATE.preferredHoldPatternVoicing === __K.M9 ? __K.m9 : chooseFrom(__K.m9, __K.m7, __K.m9);
             const domVoicing0 = subdomVoicing === __K.m7b5 ? __K.d7b9 : chooseFrom(subdomVoicing === __K.m9 ? __K.d9 : __K.d7, __K.alt, __K.d7b9); /* m7 to 7, m9 to 9 */
-            const domVoicing1 = chooseFrom(__K.alt, domVoicing0, (domVoicing0 === __K.d7b9 ? domVoicing0 : __K.d7s5));
-            const domVoicing2 = (domVoicing1 === __K.alt ? __K.d7b9 : (domVoicing1 === __K.d7b9 ? chooseFrom(__K.aug, domVoicing1) : domVoicing1));
+            const domVoicing1 = chooseFrom(__K.alt, domVoicing0);
+            const domVoicing2 = (domVoicing1 === __K.alt ? __K.d7b9 : domVoicing1);
             const patternEvents = 
               [ {"key": __K.b, "time": "0:0", "duration": "8n"}
               , {"key": subdomVoicing, "time": "0:0:2", "duration": "16n"}
@@ -286,7 +286,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 1}
               , {"key": __K.b, "time": "0:0:8", "duration": "16n"}
               , {"key": domVoicing0, "time": "0:0:9", "duration": randomlyLengthen(Tone.Time("16n"))}
-              , {"key": __K.b, "time": "0:0:11", "duration": staccato16n}
+              , {"key": __K.lb, "time": "0:0:11", "duration": staccato16n}
               , {"key": __K.b, "time": "0:0:12", "duration": "8n"}
               , {"key": domVoicing1, "time": "0:0:12", "duration": "8n"}
               , {"key": domVoicing2, "time": "0:0:14", "duration": "16n"}
@@ -326,7 +326,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": 7}
               , {"key": __K.b, "time": "0:0:8", "duration": "16n"}
               , {"key": domVoicing0, "time": "0:0:9", "duration": staccato16n}
-              , {"key": __K.b, "time": "0:0:11", "duration": staccato16n}
+              , {"key": __K.lb, "time": "0:0:11", "duration": staccato16n}
               , {"key": __K.b, "time": "0:0:12", "duration": "8n"}
               , {"key": domVoicing0, "time": "0:0:12", "duration": "8n"}
               , {"key": domVoicing0, "time": "0:0:14", "duration": staccato16n}
@@ -371,7 +371,7 @@ function makeBossaModulationPatterns(bassCOFShift, variation) {
               , {"bassCOFShift": -2}
               , {"key": __K.b, "time": "0:0:8", "duration": staccato8n2}
               , {"key": __K.s13, "time": "0:0:9", "duration": staccato16n}
-              , {"key": __K.b, "time": "0:0:11", "duration": staccato8n2}
+              , {"key": __K.lb, "time": "0:0:11", "duration": staccato8n2}
               , {"key": __K.b, "time": "0:0:12", "duration": staccato8n}
               , {"key": __K.s13, "time": "0:0:12", "duration": "8n"}
               , {"key": __K.b, "time": "0:0:14", "duration": "16n", "bassCOFShift": 5}
